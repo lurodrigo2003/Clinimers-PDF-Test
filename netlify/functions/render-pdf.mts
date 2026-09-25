@@ -11,7 +11,7 @@ const ALLOWED_ORIGINS = new Set([
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get("origin") || "";
-  const allowed = (!origin || origin === "null" || ALLOWED_ORIGINS.has(origin)) ? (origin || "*") : "";
+  const allowed = (!origin || origin === "null") ? "*" : (ALLOWED_ORIGINS.has(origin) ? origin : "");
   return {
     ...(allowed ? { "Access-Control-Allow-Origin": allowed } : {}),
     "Access-Control-Allow-Methods": "POST, OPTIONS",
