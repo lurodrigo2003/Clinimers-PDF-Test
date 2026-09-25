@@ -12202,10 +12202,47 @@ function buildAthletePrintFragment(){
           serialAthlete.innerHTML=originalAthlete.shadowRoot.innerHTML;
         }
 
-        const html=serial.outerHTML;
-        cleanupIntegralPrint();
-        window.__clinimersCloudPdfCapture=null;
-        capture.resolve(html);
+        // Reduz somente imagens raster muito grandes incorporadas no HTML.
+        // Mantém dimensões visuais; apenas reduz resolução/peso para caber no limite do Netlify.
+        const optimizeLargeImages=async(root)=>{
+          const imgs=[...root.querySelectorAll('img')];
+          for(const img of imgs){
+            const src=img.getAttribute('src')||'';
+            if(!src.startsWith('data:image/') || src.length<250000) continue;
+            try{
+              const loaded=await new Promise((resolve,reject)=>{
+                const im=new Image();
+                im.onload=()=>resolve(im);
+                im.onerror=reject;
+                im.src=src;
+              });
+              const maxSide=1600;
+              const scale=Math.min(1,maxSide/Math.max(loaded.naturalWidth||loaded.width,loaded.naturalHeight||loaded.height));
+              const w=Math.max(1,Math.round((loaded.naturalWidth||loaded.width)*scale));
+              const h=Math.max(1,Math.round((loaded.naturalHeight||loaded.height)*scale));
+              const c=document.createElement('canvas');
+              c.width=w; c.height=h;
+              const ctx=c.getContext('2d');
+              ctx.drawImage(loaded,0,0,w,h);
+              // Fotos/capas ficam muito menores em JPEG sem mudança perceptível no PDF.
+              img.setAttribute('src',c.toDataURL('image/jpeg',0.82));
+            }catch(_e){}
+          }
+        };
+
+        (async()=>{
+          try{
+            await optimizeLargeImages(serial);
+            const html=serial.outerHTML;
+            cleanupIntegralPrint();
+            window.__clinimersCloudPdfCapture=null;
+            capture.resolve(html);
+          }catch(err){
+            cleanupIntegralPrint();
+            window.__clinimersCloudPdfCapture=null;
+            capture.reject(err);
+          }
+        })();
         return;
       }catch(err){
         const capture=window.__clinimersCloudPdfCapture;
