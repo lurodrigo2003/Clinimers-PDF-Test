@@ -13678,44 +13678,34 @@ async function findExistingExam(localId, clinicId){
 
 async function clinimersBuildPrintableHtml(){
   if(typeof window.printIntegralPdf!=='function') throw new Error('Montagem do laudo para PDF não disponível.');
-
   const stage=window.printIntegralPdf({skipPrint:true});
   if(!stage) throw new Error('Não foi possível montar o laudo final para PDF.');
-
   try{
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-
-    // O outerHTML não transporta o bitmap dos canvas. Converte cada gráfico/ECG
-    // já renderizado para imagem antes de enviar ao Chromium do renderizador.
-    for(const canvas of [...stage.querySelectorAll('canvas')]){
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    const canvases=[...stage.querySelectorAll('canvas')];
+    for(let i=0;i<canvases.length;i++){
+      const canvas=canvases[i];
       try{
+        if(!canvas.width||!canvas.height) continue;
+        const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        if(!blob) continue;
+        const data=await new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(blob)});
         const img=document.createElement('img');
-        img.src=canvas.toDataURL('image/png');
-        img.alt=canvas.getAttribute('aria-label')||'';
-        img.className=canvas.className||'';
-        img.style.cssText=canvas.style.cssText||'';
-        if(canvas.width) img.setAttribute('width',String(canvas.width));
-        if(canvas.height) img.setAttribute('height',String(canvas.height));
+        img.src=String(data); img.alt=canvas.getAttribute('aria-label')||''; img.className=canvas.className||''; img.style.cssText=canvas.style.cssText||''; img.width=canvas.width; img.height=canvas.height;
         canvas.replaceWith(img);
-      }catch(_){ /* mantém o canvas se não puder ser convertido */ }
+      }catch(_){}
+      if(i%2===1) await new Promise(resolve=>setTimeout(resolve,0));
     }
-
-    // Incorpora imagens blob: locais (ex.: foto escolhida pelo usuário), pois o
-    // servidor não consegue acessar URLs blob: criadas no navegador.
     for(const img of [...stage.querySelectorAll('img[src^="blob:"]')]){
       try{
-        const blob=await fetch(img.src).then(r=>r.blob());
-        const data=await new Promise((resolve,reject)=>{
-          const fr=new FileReader(); fr.onload=()=>resolve(fr.result); fr.onerror=reject; fr.readAsDataURL(blob);
-        });
+        const ctl=new AbortController(); const timer=setTimeout(()=>ctl.abort(),3000);
+        const blob=await fetch(img.src,{signal:ctl.signal}).then(r=>r.blob()); clearTimeout(timer);
+        const data=await new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(blob)});
         img.src=String(data);
-      }catch(_){ }
+      }catch(_){}
     }
-
-    const head=[...document.head.querySelectorAll('style,link[rel="stylesheet"]')]
-      .map(n=>n.outerHTML).join('\n');
-    return '<!doctype html><html><head><meta charset="utf-8">'+head+
-      '</head><body class="integral-printing">'+stage.outerHTML+'</body></html>';
+    const head=[...document.head.querySelectorAll('style,link[rel="stylesheet"]')].map(n=>n.outerHTML).join('\n');
+    return '<!doctype html><html><head><meta charset="utf-8">'+head+'</head><body class="integral-printing">'+stage.outerHTML+'</body></html>';
   }finally{
     if(typeof integralPrintCleanup==='function' && integralPrintCleanup) integralPrintCleanup();
     else { document.body.classList.remove('integral-printing'); stage.remove(); }
@@ -13735,8 +13725,12 @@ async function clinimersGeneratePdfBlob(){
   const headers={'Content-Type':'text/html; charset=utf-8'};
   if(packed.encoding) headers['Content-Encoding']=packed.encoding;
 
-  const endpoint='https://clinimers-tcp-integral-v155-test.netlify.app/api/render-pdf';
-  const res=await fetch(endpoint,{method:'POST',headers,body:packed.body,mode:'cors'});
+  const endpoint='/api/render-pdf';
+  const ctl=new AbortController();
+  const timer=setTimeout(()=>ctl.abort(),60000);
+  let res;
+  try{ res=await fetch(endpoint,{method:'POST',headers,body:packed.body,signal:ctl.signal}); }
+  finally{ clearTimeout(timer); }
   if(!res.ok) throw new Error((await res.text())||('Falha ao gerar PDF (HTTP '+res.status+').'));
   const pdf=await res.blob();
   if(pdf.type && pdf.type!=='application/pdf') throw new Error('O renderizador não retornou um PDF válido.');
