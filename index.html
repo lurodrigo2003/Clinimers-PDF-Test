@@ -13685,20 +13685,43 @@ async function findExistingExam(localId, clinicId){
 })();
 
 async function clinimersBuildCloudPdfBlob(){
-  const source=document.querySelector('.clinical-grid');
-  if(!source) throw new Error('Conteúdo clínico do laudo não encontrado.');
+  const grid=document.querySelector('.grid');
+  if(!grid) throw new Error('Estrutura principal do laudo (.grid) não encontrada.');
 
-  // Montagem totalmente destacada da tela: não chama window.print nem printIntegralPdf.
+  // Monta o PDF em memória, sem abrir a impressão do Safari e sem alterar a tela.
   const stage=document.createElement('div');
   stage.className='integral-print-stage';
-  const clinical=source.cloneNode(true);
+
+  // Usa a mesma capa do PDF normal.
+  try{
+    if(typeof buildIntegralCover==='function'){
+      stage.appendChild(buildIntegralCover());
+    }
+  }catch(_e){}
+
+  // Usa o contêiner real desta versão do Clinimers.
+  const clinical=grid.cloneNode(true);
+  clinical.classList.add('integral-clinical-print');
+
+  // Copia para o clone os valores atuais dos campos e os gráficos.
+  try{
+    if(typeof syncControlsForPrint==='function') syncControlsForPrint(grid,clinical);
+    if(typeof copyCanvasesForPrint==='function') copyCanvasesForPrint(grid,clinical);
+  }catch(_e){}
+
+  clinical.querySelectorAll(
+    '.no-print,button,input[type=file],#integralAthleteToggleWrap,#integralAthleteModule'
+  ).forEach(e=>e.remove());
+
   stage.appendChild(clinical);
 
-  // Mantém no HTML enviado ao servidor apenas o conteúdo necessário para o laudo.
   const head=[...document.head.querySelectorAll('style,link[rel="stylesheet"]')]
     .map(n=>n.outerHTML).join('\n');
+
   const html='<!doctype html><html><head><meta charset="utf-8">'+head+
     '</head><body class="integral-printing">'+stage.outerHTML+'</body></html>';
+
+  clinimersCloudSaveStatus('Enviando PDF ao renderizador…');
 
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),90000);
@@ -13721,6 +13744,7 @@ async function clinimersBuildCloudPdfBlob(){
     const msg=await res.text();
     throw new Error(msg||('Falha ao gerar PDF (HTTP '+res.status+').'));
   }
+
   const pdf=await res.blob();
   if(pdf.size<1000) throw new Error('O PDF gerado está vazio.');
   return new Blob([await pdf.arrayBuffer()],{type:'application/pdf'});
