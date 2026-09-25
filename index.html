@@ -13761,6 +13761,24 @@ async function clinimersBuildCloudPdfBlob(){
   const html='<!doctype html><html><head><meta charset="utf-8">'+head+
     '</head><body class="integral-printing">'+stageHtml+'</body></html>';
 
+  // Compacta antes do envio. O render-pdf já aceita Content-Encoding: gzip.
+  // Isso evita o Safari ficar preso preparando/enviando um HTML grande.
+  clinimersCloudSaveStatus('Compactando PDF…');
+  let requestBody=html;
+  const requestHeaders={'Content-Type':'text/html; charset=utf-8'};
+  try{
+    if(typeof CompressionStream==='function'){
+      const bytes=new TextEncoder().encode(html);
+      const cs=new CompressionStream('gzip');
+      const compressedStream=new Blob([bytes]).stream().pipeThrough(cs);
+      requestBody=await new Response(compressedStream).blob();
+      requestHeaders['Content-Encoding']='gzip';
+    }
+  }catch(_e){
+    // Se o navegador não suportar gzip, mantém o envio normal.
+    requestBody=html;
+  }
+
   clinimersCloudSaveStatus('Enviando PDF ao renderizador…');
 
   const controller=new AbortController();
@@ -13769,8 +13787,8 @@ async function clinimersBuildCloudPdfBlob(){
   try{
     res=await fetch('/api/render-pdf',{
       method:'POST',
-      headers:{'Content-Type':'text/html; charset=utf-8'},
-      body:html,
+      headers:requestHeaders,
+      body:requestBody,
       signal:controller.signal
     });
   }catch(err){
