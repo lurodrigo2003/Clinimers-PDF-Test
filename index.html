@@ -13671,8 +13671,23 @@ async function findExistingExam(localId, clinicId){
 }
 
 
+// Segurança de interface: a aplicação nunca deve iniciar em modo de impressão.
+(function(){
+  function restoreNormalScreen(){
+    try{
+      document.body?.classList.remove('integral-printing');
+      document.querySelectorAll?.('.integral-print-stage').forEach(e=>e.remove());
+    }catch(_e){}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',restoreNormalScreen,{once:true});
+  else restoreNormalScreen();
+  window.addEventListener('pageshow',restoreNormalScreen);
+})();
+
 async function clinimersBuildCloudPdfBlob(){
+  // Monta o estágio usando o compositor existente, mas restaura a tela imediatamente.
   const oldPrint=window.print;
+  let stageHtml='';
   try{
     window.print=function(){};
     if(typeof window.printIntegralPdf!=='function') throw new Error('Compositor do PDF não está disponível.');
@@ -13680,32 +13695,7 @@ async function clinimersBuildCloudPdfBlob(){
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const stage=document.querySelector('.integral-print-stage');
     if(!stage) throw new Error('Não foi possível preparar o laudo para PDF.');
-    const clone=document.documentElement.cloneNode(true);
-    clone.querySelectorAll('script').forEach(el=>el.remove());
-    clone.querySelectorAll('body > *').forEach(el=>{
-      if(!el.classList?.contains('integral-print-stage')) el.remove();
-    });
-    const body=clone.querySelector('body');
-    if(body) body.classList.add('integral-printing');
-    const html='<!doctype html>\n'+clone.outerHTML;
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),90000);
-    let res;
-    try{
-      res=await fetch('/api/render-pdf',{
-        method:'POST',
-        headers:{'Content-Type':'text/html; charset=utf-8'},
-        body:html,
-        signal:controller.signal
-      });
-    }catch(err){
-      if(err?.name==='AbortError') throw new Error('A geração do PDF excedeu 90 segundos.');
-      throw new Error('Não foi possível acessar o gerador de PDF em '+window.location.origin+'/api/render-pdf: '+(err?.message||err));
-    }finally{ clearTimeout(timer); }
-    if(!res.ok) throw new Error((await res.text())||('Falha ao gerar PDF (HTTP '+res.status+').'));
-    const pdf=await res.blob();
-    if(pdf.size<1000) throw new Error('O PDF gerado está vazio.');
-    return new Blob([await pdf.arrayBuffer()],{type:'application/pdf'});
+    stageHtml=stage.outerHTML;
   }finally{
     window.print=oldPrint;
     try{
@@ -13714,6 +13704,32 @@ async function clinimersBuildCloudPdfBlob(){
       document.getElementById('integralAthletePrintStyles')?.remove();
     }catch(_e){}
   }
+
+  // Gera um HTML independente para o renderizador sem alterar o estado visual da aplicação.
+  const head=[...document.head.querySelectorAll('style,link[rel="stylesheet"]')]
+    .map(n=>n.outerHTML).join('\n');
+  const html='<!doctype html><html><head><meta charset="utf-8">'+head+
+    '</head><body class="integral-printing">'+stageHtml+'</body></html>';
+
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),90000);
+  let res;
+  try{
+    res=await fetch('/api/render-pdf',{
+      method:'POST',
+      headers:{'Content-Type':'text/html; charset=utf-8'},
+      body:html,
+      signal:controller.signal
+    });
+  }catch(err){
+    if(err?.name==='AbortError') throw new Error('A geração do PDF excedeu 90 segundos.');
+    throw new Error('Não foi possível acessar o gerador de PDF em '+window.location.origin+'/api/render-pdf: '+(err?.message||err));
+  }finally{ clearTimeout(timer); }
+
+  if(!res.ok) throw new Error((await res.text())||('Falha ao gerar PDF (HTTP '+res.status+').'));
+  const pdf=await res.blob();
+  if(pdf.size<1000) throw new Error('O PDF gerado está vazio.');
+  return new Blob([await pdf.arrayBuffer()],{type:'application/pdf'});
 }
 
 async function saveExamCloud(){
