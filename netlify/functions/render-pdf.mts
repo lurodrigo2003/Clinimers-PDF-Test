@@ -43,13 +43,30 @@ export default async (req: Request, _context: Context) => {
   let browser: any = null;
   try {
     console.log("[render-pdf] lendo corpo da requisicao");
-    const raw = Buffer.from(await req.arrayBuffer());
-    console.log("[render-pdf] corpo recebido", { bytes: raw.length });
+    const contentType = req.headers.get("content-type") || "";
+    let html = "";
 
-    const html = req.headers.get("content-encoding") === "gzip"
-      ? gunzipSync(raw).toString("utf8")
-      : raw.toString("utf8");
-    console.log("[render-pdf] HTML preparado", { chars: html.length, gzip: req.headers.get("content-encoding") === "gzip" });
+    if (contentType.includes("application/json")) {
+      const payload = await req.json() as { htmlUrl?: string };
+      const htmlUrl = payload?.htmlUrl || "";
+      if (!htmlUrl.startsWith("https://oecmvgkuopdhqeixfsyr.supabase.co/storage/v1/object/sign/exam-files/")) {
+        return new Response("URL do HTML inválida", { status: 400, headers: cors });
+      }
+      console.log("[render-pdf] buscando HTML temporario no Supabase");
+      const htmlResponse = await fetch(htmlUrl);
+      if (!htmlResponse.ok) {
+        throw new Error("Falha ao buscar HTML temporário: HTTP " + htmlResponse.status);
+      }
+      html = await htmlResponse.text();
+      console.log("[render-pdf] HTML temporario recebido", { chars: html.length });
+    } else {
+      const raw = Buffer.from(await req.arrayBuffer());
+      console.log("[render-pdf] corpo recebido", { bytes: raw.length });
+      html = req.headers.get("content-encoding") === "gzip"
+        ? gunzipSync(raw).toString("utf8")
+        : raw.toString("utf8");
+      console.log("[render-pdf] HTML preparado", { chars: html.length, gzip: req.headers.get("content-encoding") === "gzip" });
+    }
 
     if (!html.includes("integral-print-stage")) {
       console.error("[render-pdf] integral-print-stage ausente");
