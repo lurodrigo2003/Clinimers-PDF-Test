@@ -12187,6 +12187,35 @@ function buildAthletePrintFragment(){
     document.body.appendChild(stage);
     document.body.classList.add('integral-printing');
 
+    // Captura para a nuvem: usa EXATAMENTE o mesmo compositor do PDF manual,
+    // mas não abre o diálogo de impressão.
+    if(window.__clinimersCloudPdfCapture){
+      try{
+        const capture=window.__clinimersCloudPdfCapture;
+        const serial=stage.cloneNode(true);
+
+        // cloneNode não copia Shadow DOM. Materializa o módulo Atleta no HTML
+        // somente na cópia enviada ao renderizador.
+        const originalAthlete=stage.querySelector('#athletePrintHost');
+        const serialAthlete=serial.querySelector('#athletePrintHost');
+        if(originalAthlete?.shadowRoot && serialAthlete){
+          serialAthlete.innerHTML=originalAthlete.shadowRoot.innerHTML;
+        }
+
+        const html=serial.outerHTML;
+        cleanupIntegralPrint();
+        window.__clinimersCloudPdfCapture=null;
+        capture.resolve(html);
+        return;
+      }catch(err){
+        const capture=window.__clinimersCloudPdfCapture;
+        cleanupIntegralPrint();
+        window.__clinimersCloudPdfCapture=null;
+        if(capture?.reject) capture.reject(err);
+        return;
+      }
+    }
+
     integralPrintCleanup=cleanupIntegralPrint;
     window.addEventListener('afterprint',cleanupIntegralPrint,{once:true});
 
@@ -13685,41 +13714,52 @@ async function findExistingExam(localId, clinicId){
 })();
 
 async function clinimersBuildCloudPdfBlob(){
-  const grid=document.querySelector('.grid');
-  if(!grid) throw new Error('Estrutura principal do laudo (.grid) não encontrada.');
+  if(typeof window.printIntegralPdf!=='function'){
+    throw new Error('Compositor original do PDF não encontrado.');
+  }
 
-  // Monta o PDF em memória, sem abrir a impressão do Safari e sem alterar a tela.
-  const stage=document.createElement('div');
-  stage.className='integral-print-stage';
+  clinimersCloudSaveStatus('Montando PDF original…');
 
-  // Usa a mesma capa do PDF normal.
+  let stageHtml;
   try{
-    if(typeof buildIntegralCover==='function'){
-      stage.appendChild(buildIntegralCover());
-    }
-  }catch(_e){}
+    stageHtml=await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>{
+        window.__clinimersCloudPdfCapture=null;
+        try{
+          document.body.classList.remove('integral-printing');
+          document.querySelectorAll('.integral-print-stage').forEach(e=>e.remove());
+        }catch(_e){}
+        reject(new Error('O compositor original do PDF não respondeu em 15 segundos.'));
+      },15000);
 
-  // Usa o contêiner real desta versão do Clinimers.
-  const clinical=grid.cloneNode(true);
-  clinical.classList.add('integral-clinical-print');
+      window.__clinimersCloudPdfCapture={
+        resolve:(html)=>{ clearTimeout(timer); resolve(html); },
+        reject:(err)=>{ clearTimeout(timer); reject(err); }
+      };
 
-  // Copia para o clone os valores atuais dos campos e os gráficos.
-  try{
-    if(typeof syncControlsForPrint==='function') syncControlsForPrint(grid,clinical);
-    if(typeof copyCanvasesForPrint==='function') copyCanvasesForPrint(grid,clinical);
-  }catch(_e){}
+      try{
+        window.printIntegralPdf();
+      }catch(err){
+        clearTimeout(timer);
+        window.__clinimersCloudPdfCapture=null;
+        reject(err);
+      }
+    });
+  }catch(err){
+    throw new Error('Falha ao montar o PDF original: '+(err?.message||err));
+  }
 
-  clinical.querySelectorAll(
-    '.no-print,button,input[type=file],#integralAthleteToggleWrap,#integralAthleteModule'
-  ).forEach(e=>e.remove());
+  if(!stageHtml || !stageHtml.includes('integral-print-stage')){
+    throw new Error('O compositor original não produziu o conteúdo do PDF.');
+  }
 
-  stage.appendChild(clinical);
-
+  // Envia ao Chromium exatamente o estágio produzido pelo compositor original.
+  // Scripts não são necessários: gráficos/campos já foram materializados pelo compositor.
   const head=[...document.head.querySelectorAll('style,link[rel="stylesheet"]')]
     .map(n=>n.outerHTML).join('\n');
 
   const html='<!doctype html><html><head><meta charset="utf-8">'+head+
-    '</head><body class="integral-printing">'+stage.outerHTML+'</body></html>';
+    '</head><body class="integral-printing">'+stageHtml+'</body></html>';
 
   clinimersCloudSaveStatus('Enviando PDF ao renderizador…');
 
