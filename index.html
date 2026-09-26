@@ -12258,9 +12258,36 @@ function buildAthletePrintFragment(){
           Objetivo: reproduzir a composição do PDF do site oficial.
         */
 
-        // 1) A conclusão revisada deve aparecer uma única vez.
-        // O PDF oficial usa a narrativa de impressão (#conclusionPrint).
-        serial.querySelector('#conclusionEditor')?.remove();
+        // 1) Conclusão: cria UMA única narrativa no PDF da nuvem.
+        // Remove editor simples, editor rico e quaisquer cópias de impressão antigas.
+        {
+          const oldPrint=serial.querySelector('#conclusionPrint');
+          const conclusionText=(
+            document.getElementById('conclusionEditor')?.value ||
+            oldPrint?.textContent || ''
+          ).replace(/\r/g,'').trim();
+          const anchor=oldPrint;
+          serial.querySelectorAll('#conclusionEditor,#conclusionEditorRich,#conclusionPrint').forEach(el=>el.remove());
+          if(anchor && conclusionText){
+            const single=document.createElement('p');
+            single.id='conclusionPrintCloudSingle';
+            single.className='print-narrative';
+            const re=/(Teste cardiopulmonar\s+(?:normal|anormal|dentro[^.]*|inconclusivo)[\s\S]*|Conclusão diagnóstica pendente[\s\S]*)$/i;
+            const m=conclusionText.match(re);
+            if(m){
+              const before=conclusionText.slice(0,m.index).trimEnd();
+              if(before) single.appendChild(document.createTextNode(before+'\n\n'));
+              const strong=document.createElement('strong');
+              strong.className='final-diagnostic';
+              strong.textContent=conclusionText.slice(m.index).trim();
+              single.appendChild(strong);
+            }else{
+              single.textContent=conclusionText;
+            }
+            const sig=serial.querySelector('.signature-block');
+            if(sig?.parentNode) sig.parentNode.insertBefore(single,sig);
+          }
+        }
 
         // 2) No site oficial a interpretação da espirometria é compacta,
         // sem os cartões auxiliares da interface de revisão do site de teste.
@@ -12278,17 +12305,73 @@ function buildAthletePrintFragment(){
           spiPanel.replaceWith(compact);
         }
 
-        // 3) Garante que o box de interpretação dos 9 gráficos cresça para mostrar todas as frases.
+        // 3) Interpretação dos 9 gráficos de Wasserman.
+        // No módulo Atleta ela nasce dentro do Shadow DOM; após materializar o Shadow DOM,
+        // move o box para logo abaixo dos 9 painéis no PDF da nuvem.
+        {
+          const wass=serial.querySelector('#wassermanSection');
+          if(wass){
+            const all=[...serial.querySelectorAll('div,section,article')];
+            const candidates=all.filter(el=>
+              el!==wass && /Interpreta(?:ç|c)ão dos gráficos de Wasserman/i.test(el.textContent||'')
+            ).sort((a,b)=>(a.textContent||'').length-(b.textContent||'').length);
+            const sourceBox=candidates[0];
+            if(sourceBox){
+              sourceBox.id='wassermanInterpretationCloud';
+              sourceBox.style.setProperty('display','block','important');
+              sourceBox.style.setProperty('height','auto','important');
+              sourceBox.style.setProperty('max-height','none','important');
+              sourceBox.style.setProperty('min-height','0','important');
+              sourceBox.style.setProperty('overflow','visible','important');
+              sourceBox.style.setProperty('white-space','normal','important');
+              sourceBox.style.setProperty('break-inside','avoid','important');
+              sourceBox.style.setProperty('page-break-inside','avoid','important');
+              wass.appendChild(sourceBox);
+              for(const el of sourceBox.querySelectorAll('*')){
+                el.style.setProperty('max-height','none','important');
+                el.style.setProperty('overflow','visible','important');
+                el.style.setProperty('white-space','normal','important');
+              }
+            }
+          }
+        }
         if(typeof window.clinimersFitWassermanInterpretation==='function'){
           window.clinimersFitWassermanInterpretation(serial);
         }
 
-        // 3) Pequenas diferenças métricas entre o preview nativo e o Chromium
+        // 4) Pequenas diferenças métricas entre o preview nativo e o Chromium
         // faziam a última linha da tabela sinótica cair sozinha em outra página.
         // Este ajuste existe apenas no PDF da nuvem.
         const cloudPdfStyle=document.createElement('style');
         cloudPdfStyle.textContent=`
           @media print{
+            #conclusionPrintCloudSingle{
+              white-space:pre-line!important;
+              line-height:1.38!important;
+              margin:6px 0 10px!important;
+            }
+            #wassermanSection .wasserman-grid{
+              height:132mm!important;
+              gap:2mm 2.4mm!important;
+            }
+            #wassermanInterpretationCloud{
+              display:block!important;
+              height:auto!important;
+              max-height:none!important;
+              min-height:0!important;
+              overflow:visible!important;
+              white-space:normal!important;
+              margin-top:2.5mm!important;
+              font-size:9pt!important;
+              line-height:1.22!important;
+              break-inside:avoid!important;
+              page-break-inside:avoid!important;
+            }
+            #wassermanInterpretationCloud *{
+              max-height:none!important;
+              overflow:visible!important;
+              white-space:normal!important;
+            }
             .integral-clinical-print #syn{
               font-size:8.1pt!important;
               line-height:1.08!important;
