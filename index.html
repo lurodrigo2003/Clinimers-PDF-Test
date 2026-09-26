@@ -13810,7 +13810,23 @@ async function clinimersBuildCloudPdfBlob(){
   if(userErr || !userData?.user) throw new Error('Sessão da nuvem não encontrada.');
 
   const uid=userData.user.id;
-  const tempName=uid+'/pdf-render/'+crypto.randomUUID()+'.html';
+  // O bucket exam-files é organizado por CLÍNICA na primeira pasta (mesma regra dos XML/TCP).
+  let clinicId='';
+  try{
+    if(typeof getActiveClinicId==='function') clinicId=await getActiveClinicId();
+  }catch(_e){}
+  if(!clinicId){
+    try{ clinicId=localStorage.getItem('clinimers_active_clinic_id')||localStorage.getItem('active_clinic_id')||''; }catch(_e){}
+  }
+  // Fallback robusto: aproveita a primeira pasta do caminho XML/TCP já aceito pelo Storage.
+  if(!clinicId){
+    try{
+      const existingClinicPath=(typeof xmlPath!=='undefined' && xmlPath) || (typeof tcpPath!=='undefined' && tcpPath) || '';
+      clinicId=String(existingClinicPath).split('/')[0]||'';
+    }catch(_e){}
+  }
+  if(!clinicId) throw new Error('Clínica ativa não identificada para preparar o PDF.');
+  const tempName=clinicId+'/pdf-render/'+uid+'/'+crypto.randomUUID()+'.html';
   const htmlBlob=new Blob([html],{type:'text/html;charset=utf-8'});
 
   const up=await sb.storage.from('exam-files').upload(tempName,htmlBlob,{
