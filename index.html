@@ -2652,6 +2652,56 @@ body:not(.clinimers-auth-locked) #clinimersPublicLanding{display:none!important}
 @media(max-width:560px){#clinimersPublicLanding{padding:16px}.clinimers-landing-card{padding:30px 20px 26px;border-radius:18px}.clinimers-landing-logo-text{font-size:36px}.clinimers-landing-card h1{font-size:26px}}
 @media print{#clinimersPublicLanding{display:none!important}body.clinimers-auth-locked > header,body.clinimers-auth-locked > .wrap{visibility:visible!important}}
 </style>
+
+<style id="clinimers-wasserman-interpretation-print-fit">
+@media print{
+  /* Reserva espaço na mesma página para a interpretação completa dos 9 painéis. */
+  #wassermanSection .wasserman-grid{
+    height:150mm!important;
+    gap:2.2mm 2.6mm!important;
+  }
+  #wassermanSection [id*="interpret" i],
+  #wassermanSection [class*="interpret" i],
+  #wassermanSection [class*="analysis" i],
+  #wassermanSection [class*="summary" i]{
+    height:auto!important;
+    max-height:none!important;
+    min-height:0!important;
+    overflow:visible!important;
+    white-space:normal!important;
+    line-height:1.28!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+}
+</style>
+<script id="clinimers-wasserman-interpretation-fit-js">
+(function(){
+  function fitWassermanInterpretation(root){
+    try{
+      const sec=root && root.querySelector ? root.querySelector('#wassermanSection') : null;
+      if(!sec) return;
+      const nodes=[...sec.querySelectorAll('div,section,article,p')];
+      const box=nodes.find(el=>/Interpreta(?:ç|c)ão dos gráficos de Wasserman/i.test(el.textContent||''));
+      if(!box) return;
+      box.style.setProperty('height','auto','important');
+      box.style.setProperty('max-height','none','important');
+      box.style.setProperty('min-height','0','important');
+      box.style.setProperty('overflow','visible','important');
+      box.style.setProperty('white-space','normal','important');
+      box.style.setProperty('line-height','1.28','important');
+      box.style.setProperty('break-inside','avoid','important');
+      box.style.setProperty('page-break-inside','avoid','important');
+      for(const el of box.querySelectorAll('*')){
+        el.style.setProperty('max-height','none','important');
+        el.style.setProperty('overflow','visible','important');
+        el.style.setProperty('white-space','normal','important');
+      }
+    }catch(_e){}
+  }
+  window.clinimersFitWassermanInterpretation=fitWassermanInterpretation;
+})();
+</script>
 </head>
 <body class="clinimers-auth-locked">
 <div id="clinimersPublicLanding" class="no-print" aria-label="Clinimers TCP Integral">
@@ -12226,6 +12276,11 @@ function buildAthletePrintFragment(){
               (spiText || 'Normal pelos critérios numéricos.')+
             '</div>';
           spiPanel.replaceWith(compact);
+        }
+
+        // 3) Garante que o box de interpretação dos 9 gráficos cresça para mostrar todas as frases.
+        if(typeof window.clinimersFitWassermanInterpretation==='function'){
+          window.clinimersFitWassermanInterpretation(serial);
         }
 
         // 3) Pequenas diferenças métricas entre o preview nativo e o Chromium
