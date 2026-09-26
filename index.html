@@ -12202,6 +12202,59 @@ function buildAthletePrintFragment(){
           serialAthlete.innerHTML=originalAthlete.shadowRoot.innerHTML;
         }
 
+        /*
+          PDF da nuvem: normalização exclusiva da cópia enviada ao renderizador.
+          Não altera a tela, os cálculos, XML/TCP, nem o PDF manual.
+          Objetivo: reproduzir a composição do PDF do site oficial.
+        */
+
+        // 1) A conclusão revisada deve aparecer uma única vez.
+        // O PDF oficial usa a narrativa de impressão (#conclusionPrint).
+        serial.querySelector('#conclusionEditor')?.remove();
+
+        // 2) No site oficial a interpretação da espirometria é compacta,
+        // sem os cartões auxiliares da interface de revisão do site de teste.
+        const spiPanel=serial.querySelector('#spirometryInterpretationPanel');
+        if(spiPanel){
+          const spiTextEl=spiPanel.querySelector('#spirometryInterpretation');
+          const spiText=(spiTextEl?.value || spiTextEl?.textContent || '').trim();
+          const compact=document.createElement('div');
+          compact.id='spirometryInterpretationOfficialPdf';
+          compact.innerHTML=
+            '<div style="font-size:14px;font-weight:700;color:#174f3c;margin:8px 0 4px">Interpretação da Espirometria de repouso</div>'+
+            '<div style="font-size:10.5pt;line-height:1.35">'+
+              (spiText || 'Normal pelos critérios numéricos.')+
+            '</div>';
+          spiPanel.replaceWith(compact);
+        }
+
+        // 3) Pequenas diferenças métricas entre o preview nativo e o Chromium
+        // faziam a última linha da tabela sinótica cair sozinha em outra página.
+        // Este ajuste existe apenas no PDF da nuvem.
+        const cloudPdfStyle=document.createElement('style');
+        cloudPdfStyle.textContent=`
+          @media print{
+            .integral-clinical-print #syn{
+              font-size:8.1pt!important;
+              line-height:1.08!important;
+            }
+            .integral-clinical-print #syn th,
+            .integral-clinical-print #syn td{
+              padding-top:1.05mm!important;
+              padding-bottom:1.05mm!important;
+            }
+            .integral-clinical-print #metabolicTimelineBlock{
+              break-inside:avoid!important;
+              page-break-inside:avoid!important;
+            }
+            .integral-clinical-print #spirometryInterpretationOfficialPdf{
+              break-inside:avoid!important;
+              page-break-inside:avoid!important;
+            }
+          }
+        `;
+        serial.prepend(cloudPdfStyle);
+
         // Reduz somente imagens raster muito grandes incorporadas no HTML.
         // Mantém dimensões visuais; apenas reduz resolução/peso para caber no limite do Netlify.
         const optimizeLargeImages=async(root)=>{
