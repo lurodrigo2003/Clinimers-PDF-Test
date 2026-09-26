@@ -12306,37 +12306,66 @@ function buildAthletePrintFragment(){
         }
 
         // 3) Interpretação dos 9 gráficos de Wasserman.
-        // No módulo Atleta ela nasce dentro do Shadow DOM; após materializar o Shadow DOM,
-        // move o box para logo abaixo dos 9 painéis no PDF da nuvem.
+        // O bloco não existe dentro de #wassermanSection no DOM original.
+        // Por isso ele é construído explicitamente a partir das frases clínicas
+        // já calculadas pelo motor e inserido logo após os 9 painéis.
         {
           const wass=serial.querySelector('#wassermanSection');
           if(wass){
-            const all=[...serial.querySelectorAll('div,section,article')];
-            const candidates=all.filter(el=>
-              el!==wass && /Interpreta(?:ç|c)ão dos gráficos de Wasserman/i.test(el.textContent||'')
-            ).sort((a,b)=>(a.textContent||'').length-(b.textContent||'').length);
-            const sourceBox=candidates[0];
-            if(sourceBox){
-              sourceBox.id='wassermanInterpretationCloud';
-              sourceBox.style.setProperty('display','block','important');
-              sourceBox.style.setProperty('height','auto','important');
-              sourceBox.style.setProperty('max-height','none','important');
-              sourceBox.style.setProperty('min-height','0','important');
-              sourceBox.style.setProperty('overflow','visible','important');
-              sourceBox.style.setProperty('white-space','normal','important');
-              sourceBox.style.setProperty('break-inside','avoid','important');
-              sourceBox.style.setProperty('page-break-inside','avoid','important');
-              wass.appendChild(sourceBox);
-              for(const el of sourceBox.querySelectorAll('*')){
-                el.style.setProperty('max-height','none','important');
-                el.style.setProperty('overflow','visible','important');
-                el.style.setProperty('white-space','normal','important');
-              }
-            }
+            serial.querySelectorAll('#wassermanInterpretationCloud').forEach(el=>el.remove());
+
+            const live=document;
+            const txt=(sel)=>{
+              const el=live.querySelector(sel);
+              if(!el) return '';
+              const v=('value' in el ? el.value : '') || el.textContent || '';
+              return String(v).replace(/\s+/g,' ').trim();
+            };
+            const uniq=(arr)=>[...new Set(arr.map(x=>String(x||'').trim()).filter(x=>x && !/aguardando dados/i.test(x)))];
+
+            // Metabólico: capacidade funcional + limiares.
+            const metabolic=uniq([
+              txt('#vo2PeakNarrative'),
+              txt('#vo2PlateauNote'),
+              txt('#pcrDataLine')
+            ]);
+
+            // Cardiovascular: pulso de O2 e relação VO2/carga.
+            const cardiovascular=uniq([
+              (()=> {
+                const p=live.querySelector('#o2pulse')?.closest('p');
+                return p?.textContent||'';
+              })(),
+              txt('#vo2wLine')
+            ]);
+
+            // Ventilatório/integrativo: todas as frases clínicas visíveis de D e E,
+            // exceto SpO2, conforme o padrão já adotado para este box.
+            const ventilatory=uniq([
+              (()=>{ const e=live.querySelector('#slope')?.closest('p'); return e?.textContent||''; })(),
+              (()=>{ const e=live.querySelector('#br')?.closest('p'); return e?.textContent||''; })(),
+              (()=>{ const e=live.querySelector('#petco2Rest')?.closest('p'); return e?.textContent||''; })(),
+              (()=>{ const e=live.querySelector('#oues')?.closest('p'); return e?.textContent||''; })(),
+              (()=>{ const e=live.querySelector('#tmeio')?.closest('p'); return e?.textContent||''; })(),
+              (()=>{ const e=live.querySelector('#eovClass')?.closest('p'); return e?.textContent||''; })()
+            ]);
+
+            const box=document.createElement('section');
+            box.id='wassermanInterpretationCloud';
+            box.className='wasserman-interpretation-cloud';
+            const block=(title,items)=>`
+              <div class="wasserman-interpretation-block">
+                <div class="wasserman-interpretation-title">${title}</div>
+                ${items.map(v=>`<p>${v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>`).join('')}
+              </div>`;
+            box.innerHTML=
+              '<h4>Interpretação dos gráficos de Wasserman</h4>'+
+              block('Resposta metabólica',metabolic)+
+              block('Resposta cardiovascular',cardiovascular)+
+              block('Resposta ventilatória',ventilatory);
+
+            wass.appendChild(box);
           }
-        }
-        if(typeof window.clinimersFitWassermanInterpretation==='function'){
-          window.clinimersFitWassermanInterpretation(serial);
         }
 
         // 4) Pequenas diferenças métricas entre o preview nativo e o Chromium
@@ -12351,9 +12380,53 @@ function buildAthletePrintFragment(){
               margin:6px 0 10px!important;
             }
             #wassermanSection .wasserman-grid{
-              height:132mm!important;
-              gap:2mm 2.4mm!important;
+              height:112mm!important;
+              gap:1.7mm 2.2mm!important;
             }
+            #wassermanInterpretationCloud{
+              display:block!important;
+              height:auto!important;
+              max-height:none!important;
+              overflow:visible!important;
+              margin:3mm 0 0!important;
+              padding:0!important;
+              break-inside:avoid!important;
+              page-break-inside:avoid!important;
+              font-family:Arial,sans-serif!important;
+            }
+            #wassermanInterpretationCloud>h4{
+              margin:0 0 2mm!important;
+              padding:2.2mm 3mm!important;
+              background:#184b3c!important;
+              color:#fff!important;
+              font-size:10.5pt!important;
+              line-height:1.15!important;
+              font-weight:800!important;
+              -webkit-print-color-adjust:exact!important;
+              print-color-adjust:exact!important;
+            }
+            #wassermanInterpretationCloud .wasserman-interpretation-block{
+              margin:0 0 1.6mm!important;
+              padding:1.7mm 2.5mm!important;
+              border:1px solid #d7e3dd!important;
+              background:#f8faf9!important;
+              break-inside:avoid!important;
+              page-break-inside:avoid!important;
+            }
+            #wassermanInterpretationCloud .wasserman-interpretation-title{
+              color:#184b3c!important;
+              font-size:8.8pt!important;
+              font-weight:800!important;
+              margin:0 0 .8mm!important;
+            }
+            #wassermanInterpretationCloud p{
+              margin:0 0 .7mm!important;
+              font-size:7.7pt!important;
+              line-height:1.16!important;
+              color:#26342e!important;
+              white-space:normal!important;
+            }
+            #wassermanInterpretationCloud p:last-child{margin-bottom:0!important;}
             #wassermanInterpretationCloud{
               display:block!important;
               height:auto!important;
