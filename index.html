@@ -13750,7 +13750,7 @@ async function findExistingExam(localId, clinicId){
   window.addEventListener('pageshow',restoreNormalScreen);
 })();
 
-async function clinimersBuildCloudPdfBlob(){
+async function clinimersBuildCloudPdfBlob(clinicId){
   if(typeof window.printIntegralPdf!=='function'){
     throw new Error('Compositor original do PDF não encontrado.');
   }
@@ -13810,22 +13810,9 @@ async function clinimersBuildCloudPdfBlob(){
   if(userErr || !userData?.user) throw new Error('Sessão da nuvem não encontrada.');
 
   const uid=userData.user.id;
-  // O bucket exam-files é organizado por CLÍNICA na primeira pasta (mesma regra dos XML/TCP).
-  let clinicId='';
-  try{
-    if(typeof getActiveClinicId==='function') clinicId=await getActiveClinicId();
-  }catch(_e){}
-  if(!clinicId){
-    try{ clinicId=localStorage.getItem('clinimers_active_clinic_id')||localStorage.getItem('active_clinic_id')||''; }catch(_e){}
-  }
-  // Fallback robusto: aproveita a primeira pasta do caminho XML/TCP já aceito pelo Storage.
-  if(!clinicId){
-    try{
-      const existingClinicPath=(typeof xmlPath!=='undefined' && xmlPath) || (typeof tcpPath!=='undefined' && tcpPath) || '';
-      clinicId=String(existingClinicPath).split('/')[0]||'';
-    }catch(_e){}
-  }
-  if(!clinicId) throw new Error('Clínica ativa não identificada para preparar o PDF.');
+  // A clínica já foi validada por requireClinic() no início do salvamento.
+  // Recebemos o mesmo clinic.id usado com sucesso para XML e TCP.
+  if(!clinicId) throw new Error('Clínica ativa não informada ao gerador de PDF.');
   const tempName=clinicId+'/pdf-render/'+uid+'/'+crypto.randomUUID()+'.html';
   const htmlBlob=new Blob([html],{type:'text/html;charset=utf-8'});
 
@@ -13976,7 +13963,7 @@ async function saveExamCloud(){
   // XML e TCP já foram enviados acima. Agora o PDF é montado sem acionar a rotina de impressão.
   try{
     clinimersCloudSaveStatus('Gerando PDF…');
-    const pdfBlob=await clinimersBuildCloudPdfBlob();
+    const pdfBlob=await clinimersBuildCloudPdfBlob(clinic.id);
     pdfPath=`${base}/laudo.pdf`;
     clinimersCloudSaveStatus('Salvando PDF…');
     await uploadObject(pdfPath,pdfBlob,'application/pdf');
