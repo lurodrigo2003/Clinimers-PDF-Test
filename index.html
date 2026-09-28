@@ -14495,6 +14495,10 @@ async function initCloud(){
     showAuthModal();
   }
 }
+// Expõe somente as rotinas necessárias ao botão unificado fora do módulo.
+window.clinimersRequireClinic = requireClinic;
+window.clinimersBuildCloudPdfBlob = clinimersBuildCloudPdfBlob;
+
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initCloud,{once:true}); else initCloud();
 </script>
 
@@ -14948,8 +14952,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   async function openUnifiedPdf(){
     const tab=window.open('about:blank','_blank');
     try{
-      const ctx=await requireClinic();
-      const blob=await clinimersBuildCloudPdfBlob(ctx.clinic.id);
+      const ctx=await window.clinimersRequireClinic();
+      const blob=await window.clinimersBuildCloudPdfBlob(ctx.clinic.id);
       const url=URL.createObjectURL(blob);
       if(tab) tab.location.href=url;
       else window.location.href=url;
