@@ -12075,10 +12075,13 @@ function buildAthletePrintFragment(){
               background-image:none!important;
               box-shadow:none!important;
               border:0!important;
-              break-before:page!important;
-              page-break-before:always!important;
-              break-after:page!important;
-              page-break-after:always!important;
+              /* Paginação unificada: as páginas do módulo Atleta fluem continuamente.
+                 A quebra física passa a ser decidida pelo navegador conforme o conteúdo,
+                 evitando folhas vazias e grandes espaços em branco. */
+              break-before:auto!important;
+              page-break-before:auto!important;
+              break-after:auto!important;
+              page-break-after:auto!important;
             }
             .report-page:not(.cover)::before{
               display:none!important;
@@ -12091,6 +12094,25 @@ function buildAthletePrintFragment(){
             .report-page:last-child{
               break-after:auto!important;
               page-break-after:auto!important;
+            }
+
+            /* Não reservar uma folha A4 inteira para cada seção do Atleta. */
+            .report-page,
+            .report-page.cover{
+              min-height:0!important;
+              height:auto!important;
+              max-height:none!important;
+              overflow:visible!important;
+            }
+            .report-page:empty{display:none!important;}
+
+            /* Mantém componentes compactos íntegros, sem impedir o fluxo de seções longas. */
+            .report-page table,
+            .report-page figure,
+            .report-page .metric-card,
+            .report-page .result-card{
+              break-inside:avoid!important;
+              page-break-inside:avoid!important;
             }
 
             /* Seções do módulo de performance: identidade própria dentro do laudo integral. */
