@@ -14212,7 +14212,7 @@ function clinimersCloudSaveStatus(msg){
   }catch(_e){}
 }
 
-async function saveExamCloud(){
+async function saveExamCloud(providedPdfBlob=null){
   const {user,clinic}=await requireClinic();
   const patient = valueOf('name') || 'Paciente';
   const examDate = valueOf('examDate');
@@ -14303,8 +14303,8 @@ async function saveExamCloud(){
   }
   // XML e TCP já foram enviados acima. Agora o PDF é montado sem acionar a rotina de impressão.
   try{
-    clinimersCloudSaveStatus('Gerando PDF…');
-    const pdfBlob=await clinimersBuildCloudPdfBlob(clinic.id);
+    clinimersCloudSaveStatus(providedPdfBlob ? 'Salvando o mesmo PDF na nuvem…' : 'Gerando PDF…');
+    const pdfBlob=providedPdfBlob || await clinimersBuildCloudPdfBlob(clinic.id);
     pdfPath=`${base}/laudo.pdf`;
     clinimersCloudSaveStatus('Salvando PDF…');
     await uploadObject(pdfPath,pdfBlob,'application/pdf');
@@ -15050,32 +15050,155 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 <script id="clinimers-unified-pdf-button">
 (function(){
-  async function openUnifiedPdf(){
-    const tab=window.open('about:blank','_blank');
+  let busy=false;
+
+  function ensureUi(){
+    if(document.getElementById('clinimersPdfFlowUi')) return;
+    const wrap=document.createElement('div');
+    wrap.id='clinimersPdfFlowUi';
+    wrap.style.cssText='display:none;position:fixed;inset:0;z-index:2147483646;background:rgba(15,23,42,.36);align-items:center;justify-content:center;padding:20px';
+    wrap.innerHTML=`
+      <div style="width:min(430px,92vw);background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:24px;font-family:Arial,sans-serif">
+        <div style="font-size:18px;font-weight:800;color:#174f3c;margin-bottom:8px">Gerando laudo…</div>
+        <div id="clinimersPdfFlowMsg" style="font-size:14px;line-height:1.45;color:#334155">Preparando o PDF para impressão.</div>
+        <div style="height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:18px">
+          <div id="clinimersPdfFlowBar" style="height:100%;width:35%;background:#174f3c;border-radius:99px;animation:clinimersPdfPulse 1.1s ease-in-out infinite alternate"></div>
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+
+    const st=document.createElement('style');
+    st.textContent='@keyframes clinimersPdfPulse{from{transform:translateX(-15%)}to{transform:translateX(190%)}}';
+    document.head.appendChild(st);
+
+    const frame=document.createElement('iframe');
+    frame.id='clinimersPdfPrintFrame';
+    frame.setAttribute('title','PDF para impressão');
+    frame.style.cssText='position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;visibility:hidden';
+    document.body.appendChild(frame);
+  }
+
+  function show(msg){
+    ensureUi();
+    const ui=document.getElementById('clinimersPdfFlowUi');
+    const m=document.getElementById('clinimersPdfFlowMsg');
+    if(m) m.textContent=msg||'Preparando o PDF para impressão.';
+    if(ui) ui.style.display='flex';
+  }
+  function hide(){
+    const ui=document.getElementById('clinimersPdfFlowUi');
+    if(ui) ui.style.display='none';
+  }
+
+  function toast(msg,ok=true){
+    let t=document.getElementById('clinimersPdfFlowToast');
+    if(!t){
+      t=document.createElement('div');
+      t.id='clinimersPdfFlowToast';
+      t.style.cssText='position:fixed;right:18px;bottom:18px;z-index:2147483647;max-width:min(430px,90vw);padding:13px 16px;border-radius:10px;color:#fff;font:600 13px/1.35 Arial,sans-serif;box-shadow:0 8px 28px rgba(0,0,0,.22);transition:opacity .25s';
+      document.body.appendChild(t);
+    }
+    t.style.background=ok?'#174f3c':'#9f1239';
+    t.textContent=msg;
+    t.style.opacity='1';
+    clearTimeout(t._timer);
+    t._timer=setTimeout(()=>{t.style.opacity='0'},6000);
+  }
+
+  async function printBlob(blob){
+    ensureUi();
+    const frame=document.getElementById('clinimersPdfPrintFrame');
+    const url=URL.createObjectURL(blob);
+
+    return new Promise((resolve,reject)=>{
+      let done=false;
+      const finish=(err)=>{
+        if(done) return;
+        done=true;
+        setTimeout(()=>URL.revokeObjectURL(url),180000);
+        err?reject(err):resolve();
+      };
+      const timer=setTimeout(()=>finish(new Error('O visualizador do PDF não respondeu.')),15000);
+
+      frame.onload=()=>{
+        clearTimeout(timer);
+        // Pequeno intervalo para o visualizador PDF terminar de preparar a impressão.
+        setTimeout(()=>{
+          try{
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+            finish();
+          }catch(err){
+            finish(err);
+          }
+        },500);
+      };
+      frame.src=url;
+    });
+  }
+
+  async function runUnifiedFlow(){
+    if(busy) return;
+    busy=true;
+    const btn=document.getElementById('printPdfBtn');
+    const oldText=btn?.textContent||'Imprimir / PDF';
+    if(btn){ btn.disabled=true; btn.textContent='Gerando PDF…'; }
+
     try{
+      show('Preparando o PDF para impressão…');
       const ctx=await window.clinimersRequireClinic();
-      const blob=await window.clinimersBuildCloudPdfBlob(ctx.clinic.id);
-      const url=URL.createObjectURL(blob);
-      if(tab) tab.location.href=url;
-      else window.location.href=url;
-      setTimeout(()=>URL.revokeObjectURL(url),120000);
+
+      // UMA geração. Este blob será usado tanto para imprimir quanto para salvar.
+      const pdfBlob=await window.clinimersBuildCloudPdfBlob(ctx.clinic.id);
+
+      show('PDF pronto. Abrindo a impressão…');
+      try{
+        await printBlob(pdfBlob);
+      }catch(printErr){
+        console.warn('Impressão automática não disponível',printErr);
+        // Fallback sem about:blank: abre o próprio blob somente se a impressão automática falhar.
+        const url=URL.createObjectURL(pdfBlob);
+        window.open(url,'_blank');
+        setTimeout(()=>URL.revokeObjectURL(url),180000);
+        toast('PDF gerado. Use o botão de imprimir do visualizador.',true);
+      }
+
+      // A impressão já foi entregue ao usuário. O salvamento não bloqueia mais o fluxo.
+      hide();
+      if(btn){ btn.disabled=false; btn.textContent=oldText; }
+      busy=false;
+
+      toast('PDF gerado. Salvando XML, TCP e o mesmo PDF na nuvem…',true);
+
+      Promise.resolve(window.clinimersSaveExamCloud(pdfBlob))
+        .then(()=>toast('PDF, XML e TCP salvos na nuvem.',true))
+        .catch(err=>{
+          console.error('Falha no salvamento secundário em nuvem',err);
+          toast('PDF gerado, mas o salvamento na nuvem não foi concluído: '+(err?.message||err),false);
+        });
+
     }catch(err){
-      try{ if(tab) tab.close(); }catch(_e){}
+      hide();
+      if(btn){ btn.disabled=false; btn.textContent=oldText; }
+      busy=false;
       alert('Não foi possível gerar o PDF: '+(err?.message||err));
     }
   }
+
   function bind(){
+    ensureUi();
     const p=document.getElementById('printPdfBtn');
-    if(!p || p.dataset.unifiedPdf==='1') return;
+    if(!p || p.dataset.singlePdfFlow==='1') return;
     const np=p.cloneNode(true);
-    np.dataset.unifiedPdf='1';
+    np.dataset.singlePdfFlow='1';
     np.textContent='Imprimir / PDF';
     p.replaceWith(np);
     np.addEventListener('click',function(ev){
       ev.preventDefault();
-      openUnifiedPdf();
+      runUnifiedFlow();
     });
   }
+
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded',()=>setTimeout(bind,0),{once:true});
   }else{
