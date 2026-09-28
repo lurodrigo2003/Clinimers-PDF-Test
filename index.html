@@ -2782,7 +2782,7 @@ body:not(.clinimers-auth-locked) #clinimersPublicLanding{display:none!important}
     <input id="file" type="file" accept=".xml,text/xml" hidden>
     <input id="tcpFile" type="file" accept=".tcp,application/octet-stream" hidden>
     <button class="secondary" id="clearImportedFilesBtn" type="button" title="Limpar o XML e o TCP do exame atual">Limpar XML/TCP</button>
-    <button class="secondary" id="confirmBtn" type="button">Confirmar e salvar exame</button>
+    <button class="secondary" id="confirmBtn" type="button">Confirmar laudo</button>
 <button id="openExamArchiveBtn" type="button">Exames salvos</button>
 
     <button class="secondary" id="printPdfBtn" type="button">Imprimir / PDF</button>
@@ -10357,29 +10357,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   async function confirmReportNow(){
     var file=byId('file'), tcp=byId('tcpFile');
     if(!file || !file.files || !file.files[0]){alert('Importe primeiro o XML do exame.');return}
-    if((!tcp || !tcp.files || !tcp.files[0]) && !confirm('Nenhum arquivo TCP ErgoPC foi selecionado. Confirmar e salvar mesmo assim?'))return;
+    if((!tcp || !tcp.files || !tcp.files[0]) && !confirm('Nenhum arquivo TCP ErgoPC foi selecionado. Confirmar o laudo mesmo assim?'))return;
     var ischemia=byId('ecgIschemia'), arr=byId('ecgArrhythmia');
     if((ischemia && ischemia.value==='nao_avaliado') || (arr && arr.value==='nao_avaliado')){
-      if(!confirm('A avaliação estruturada do ECG ainda está pendente. Confirmar e salvar mesmo assim?'))return;
+      if(!confirm('A avaliação estruturada do ECG ainda está pendente. Confirmar o laudo mesmo assim?'))return;
     }
-    if(!confirm('Confirma que revisou os dados, o ECG e a conclusão final e deseja salvar este exame?'))return;
+    if(!confirm('Confirma que revisou os dados, o ECG e a conclusão final?'))return;
 
     try{ smartConfirmed=true; }catch(_e){ window.smartConfirmed=true; }
-    var b=byId('confirmBtn'), s=byId('status');
-    if(b){ b.disabled=true; b.textContent='Salvando exame…'; }
-    try{
-      if(typeof window.clinimersSaveExamIntegrated==='function') await window.clinimersSaveExamIntegrated();
-      else if(typeof window.clinimersSaveExamLocal==='function') await window.clinimersSaveExamLocal();
-      else if(typeof clinimersSaveExamLocal==='function') await clinimersSaveExamLocal();
-      if(b){ b.textContent='✓ Exame confirmado e salvo'; b.dataset.examSaved='1'; }
-      if(s)s.textContent='Exame confirmado e salvo. A conclusão final permanece editável até a impressão.';
-    }catch(err){
-      console.error(err);
-      if(b)b.textContent='Confirmar e salvar exame';
-      if(s)s.textContent='O laudo foi confirmado, mas não foi possível salvar o exame.';
-    }finally{
-      if(b)b.disabled=false;
-    }
+    var btn=byId('confirmBtn'), st=byId('status');
+    if(btn){ btn.textContent='✓ Laudo confirmado'; btn.dataset.examConfirmed='1'; }
+    if(st) st.textContent='Laudo confirmado. Ao usar “Imprimir / PDF”, o PDF será gerado e o PDF + XML + TCP serão salvos na nuvem.';
   }
 
   function activateOnce(el, action){
@@ -14101,8 +14089,21 @@ async function clinimersBuildCloudPdfBlob(clinicId){
   }
 
   /* Mantém blocos pequenos juntos, mas permite que seções longas fluam. */
-  table, figure, canvas, svg, img,
+  figure, canvas, svg, img,
   .metric-card, .result-card, .interpretation-box {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Tabela longa do exame deve começar logo após o título e continuar nas folhas seguintes. */
+  #dataTableSection table {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+  #dataTableSection thead {
+    display: table-header-group !important;
+  }
+  #dataTableSection tr {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
@@ -14205,10 +14206,12 @@ async function clinimersBuildCloudPdfBlob(clinicId){
 
 function clinimersCloudSaveStatus(msg){
   try{
-    const b=byId('confirmBtn');
-    if(b) b.textContent=msg;
     const st=byId('status');
     if(st) st.textContent=msg;
+    const flowMsg=document.getElementById('clinimersPdfFlowMsg');
+    if(flowMsg && document.getElementById('clinimersPdfFlowUi')?.style.display!=='none'){
+      flowMsg.textContent=msg;
+    }
   }catch(_e){}
 }
 
@@ -15151,31 +15154,36 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       // UMA geração. Este blob será usado tanto para imprimir quanto para salvar.
       const pdfBlob=await window.clinimersBuildCloudPdfBlob(ctx.clinic.id);
 
+      // Inicia o salvamento do MESMO blob em segundo plano.
+      const cloudSavePromise=Promise.resolve(window.clinimersSaveExamCloud(pdfBlob));
+
       show('PDF pronto. Abrindo a impressão…');
       try{
         await printBlob(pdfBlob);
       }catch(printErr){
         console.warn('Impressão automática não disponível',printErr);
-        // Fallback sem about:blank: abre o próprio blob somente se a impressão automática falhar.
         const url=URL.createObjectURL(pdfBlob);
         window.open(url,'_blank');
         setTimeout(()=>URL.revokeObjectURL(url),180000);
         toast('PDF gerado. Use o botão de imprimir do visualizador.',true);
       }
 
-      // A impressão já foi entregue ao usuário. O salvamento não bloqueia mais o fluxo.
+      // Mesmo sendo secundário, o processo só é marcado como concluído após confirmar a nuvem.
+      show('Impressão liberada. Finalizando o salvamento de PDF, XML e TCP na nuvem…');
+      try{
+        await cloudSavePromise;
+        show('Concluído: PDF, XML e TCP salvos na nuvem.');
+        toast('Concluído: PDF, XML e TCP salvos na nuvem.',true);
+        await new Promise(r=>setTimeout(r,1300));
+      }catch(saveErr){
+        console.error('Falha no salvamento secundário em nuvem',saveErr);
+        toast('O PDF foi gerado, mas o salvamento na nuvem não foi concluído: '+(saveErr?.message||saveErr),false);
+        throw new Error('PDF gerado, porém o salvamento na nuvem falhou: '+(saveErr?.message||saveErr));
+      }
+
       hide();
       if(btn){ btn.disabled=false; btn.textContent=oldText; }
       busy=false;
-
-      toast('PDF gerado. Salvando XML, TCP e o mesmo PDF na nuvem…',true);
-
-      Promise.resolve(window.clinimersSaveExamCloud(pdfBlob))
-        .then(()=>toast('PDF, XML e TCP salvos na nuvem.',true))
-        .catch(err=>{
-          console.error('Falha no salvamento secundário em nuvem',err);
-          toast('PDF gerado, mas o salvamento na nuvem não foi concluído: '+(err?.message||err),false);
-        });
 
     }catch(err){
       hide();
@@ -15205,6 +15213,21 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     setTimeout(bind,0);
   }
   window.addEventListener('pageshow',()=>setTimeout(bind,0));
+})();
+</script>
+
+<script id="clinimers-remove-legacy-save-button">
+(function(){
+  function clean(){
+    const legacy=document.getElementById('saveExamLocalBtn');
+    if(legacy) legacy.remove();
+    const b=document.getElementById('confirmBtn');
+    if(b && !b.dataset.examConfirmed) b.textContent='Confirmar laudo';
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',clean,{once:true});
+  else clean();
+  window.addEventListener('pageshow',clean);
+  new MutationObserver(clean).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
 </body></html>
