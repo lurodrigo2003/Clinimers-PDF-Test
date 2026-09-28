@@ -15140,8 +15140,31 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     });
   }
 
+  let clinimersSavedPdfBlob=null;
+  let clinimersSavedPdfUrl=null;
+
+  function reopenSavedPdf(){
+    if(!clinimersSavedPdfBlob) return false;
+    try{
+      if(clinimersSavedPdfUrl) URL.revokeObjectURL(clinimersSavedPdfUrl);
+      clinimersSavedPdfUrl=URL.createObjectURL(clinimersSavedPdfBlob);
+      window.open(clinimersSavedPdfUrl,'_blank');
+      return true;
+    }catch(e){
+      console.error('Falha ao reabrir PDF salvo',e);
+      return false;
+    }
+  }
+
   async function runUnifiedFlow(){
     if(busy) return;
+
+    // Depois de um salvamento confirmado, novos cliques não geram nem salvam de novo.
+    if(clinimersSavedPdfBlob){
+      if(!reopenSavedPdf()) alert('Não foi possível abrir o PDF já salvo.');
+      return;
+    }
+
     busy=true;
     const btn=document.getElementById('printPdfBtn');
     const oldText=btn?.textContent||'Imprimir / PDF';
@@ -15172,8 +15195,10 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       show('Impressão liberada. Finalizando o salvamento de PDF, XML e TCP na nuvem…');
       try{
         await cloudSavePromise;
+        // Só guarda para reutilização depois da confirmação real do salvamento.
+        clinimersSavedPdfBlob=pdfBlob;
         show('Concluído: PDF, XML e TCP salvos na nuvem.');
-        toast('Concluído: PDF, XML e TCP salvos na nuvem.',true);
+        toast('Concluído: PDF, XML e TCP salvos na nuvem. Se imprimir novamente, abrirei este mesmo PDF.',true);
         await new Promise(r=>setTimeout(r,1300));
       }catch(saveErr){
         console.error('Falha no salvamento secundário em nuvem',saveErr);
@@ -15227,7 +15252,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',clean,{once:true});
   else clean();
   window.addEventListener('pageshow',clean);
-  new MutationObserver(clean).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
 </body></html>
