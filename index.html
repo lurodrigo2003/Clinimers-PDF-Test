@@ -14035,7 +14035,86 @@ async function clinimersBuildCloudPdfBlob(clinicId){
   const head=[...document.head.querySelectorAll('style,link[rel="stylesheet"]')]
     .map(n=>n.outerHTML).join('\n');
 
-  const html='<!doctype html><html><head><meta charset="utf-8">'+head+
+  const compactPaginationStyle = `
+<style id="clinimers-cloud-compact-pagination">
+@media print {
+  /* Compactação exclusiva do PDF unificado: mantém conteúdo e cálculos. */
+  .integral-print-stage,
+  .integral-clinical-print {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  /* O cabeçalho-resumo não deve consumir uma folha inteira. */
+  .integral-clinical-print .patient-header,
+  .integral-clinical-print .patient-summary,
+  .integral-clinical-print .exam-summary,
+  .integral-clinical-print .summary-card,
+  .integral-clinical-print .clinical-summary {
+    min-height: 0 !important;
+    height: auto !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  /* Páginas internas do módulo Atleta deixam de forçar uma folha por seção. */
+  #athletePrintHost .report-page,
+  .athlete-print .report-page,
+  .integral-athlete-print .report-page,
+  .report-page {
+    min-height: 0 !important;
+    height: auto !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
+    margin-bottom: 4mm !important;
+  }
+
+  /* Evita páginas vazias causadas por wrappers com quebra dupla. */
+  .page-break,
+  .print-page,
+  .pdf-page {
+    min-height: 0 !important;
+  }
+
+  /* Mantém blocos pequenos juntos, mas permite que seções longas fluam. */
+  table, figure, canvas, svg, img,
+  .metric-card, .result-card, .interpretation-box {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* As seções grandes podem continuar na folha seguinte sem criar folha vazia. */
+  #athletePrintHost,
+  #wassermanSection,
+  #syn,
+  #dataTableSection,
+  .athlete-print,
+  .integral-athlete-print {
+    min-height: 0 !important;
+    height: auto !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  /* Não força a tabela sinótica/dados a uma nova página se houver espaço. */
+  #syn, #dataTableSection {
+    margin-top: 3mm !important;
+  }
+
+  /* Remove elementos vazios que, com quebra de página, geram folha branca. */
+  .report-page:empty,
+  .print-page:empty,
+  .pdf-page:empty {
+    display: none !important;
+  }
+}
+</style>
+`;
+  const html='<!doctype html><html><head><meta charset="utf-8">'+head+compactPaginationStyle+
     '</head><body class="integral-printing">'+stageHtml+'</body></html>';
 
   // Evita o limite de tamanho do POST do Netlify:
