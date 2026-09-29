@@ -15351,17 +15351,24 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     const ta=addBox(); if(!ta) return;
     const auto=build(); if(!auto) return;
     if(ta.dataset.manual==='1') return;
+    const current=String(ta.textContent||'').trim();
+    if(current===auto && lastAuto===auto) return;
     ta.textContent=auto;
     lastAuto=auto;
     ta.dataset.seeded='1';
-    ta.dispatchEvent(new Event('change',{bubbles:true}));
   }
 
   function init(){
     addBox();
     [300,800,1500,3000].forEach(ms=>setTimeout(refresh,ms));
     const sec=document.getElementById('wassermanSection');
-    if(sec) new MutationObserver(()=>setTimeout(refresh,0)).observe(sec,{attributes:true,subtree:true,childList:true,characterData:true});
+    if(sec) new MutationObserver(function(mutations){
+      const onlySummary=mutations.length && mutations.every(function(m){
+        const n=m.target && (m.target.nodeType===1 ? m.target : m.target.parentElement);
+        return n && n.closest && n.closest('#wassermanSummaryEditable');
+      });
+      if(!onlySummary) setTimeout(refresh,0);
+    }).observe(sec,{attributes:true,subtree:true,childList:true,characterData:true});
     document.addEventListener('change',()=>setTimeout(refresh,50),true);
   }
 
