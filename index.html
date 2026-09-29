@@ -15294,12 +15294,12 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     box.style.marginTop='10px';
     box.innerHTML=
       '<div style="font-weight:700;margin-bottom:6px">Interpretação resumida dos 9 gráficos de Wasserman</div>'+
-      '<textarea id="wassermanSummaryText" class="clinical-editor" spellcheck="true" '+
-      'style="width:100%;min-height:150px;resize:vertical;box-sizing:border-box;font:inherit;line-height:1.35;padding:8px" '+
-      'placeholder="A análise automática será preenchida após o processamento do exame e poderá ser editada."></textarea>';
+      '<div id="wassermanSummaryText" class="clinical-editor" contenteditable="true" spellcheck="true" '+
+      'style="width:100%;min-height:118px;box-sizing:border-box;font:inherit;line-height:1.32;padding:8px;white-space:pre-wrap" '+
+      'data-placeholder="A análise automática será preenchida após o processamento do exame e poderá ser editada."></div>';
     sec.appendChild(box);
     const ta=document.getElementById('wassermanSummaryText');
-    ta.addEventListener('input',()=>{ if(ta.value.trim()!==lastAuto) ta.dataset.manual='1'; });
+    ta.addEventListener('input',()=>{ if(String(ta.textContent||'').trim()!==lastAuto) ta.dataset.manual='1'; });
     return ta;
   }
 
@@ -15351,7 +15351,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     const ta=addBox(); if(!ta) return;
     const auto=build(); if(!auto) return;
     if(ta.dataset.manual==='1') return;
-    ta.value=auto;
+    ta.textContent=auto;
     lastAuto=auto;
     ta.dataset.seeded='1';
     ta.dispatchEvent(new Event('change',{bubbles:true}));
@@ -15370,6 +15370,43 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   window.addEventListener('load',()=>setTimeout(refresh,300),{once:true});
 })();
 </script>
+<style id="clinimers-wasserman-pdf-summary-fix">
+#wassermanSummaryText:empty:before{
+  content:attr(data-placeholder);
+  color:#78847e;
+}
+@media print{
+  #wassermanSection{
+    min-height:0!important;
+  }
+  #wassermanSummaryEditable{
+    display:block!important;
+    margin:2mm 0 0!important;
+    padding:2mm 2.5mm!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  #wassermanSummaryEditable > div:first-child{
+    font-size:7.4pt!important;
+    margin:0 0 1mm!important;
+  }
+  #wassermanSummaryText{
+    display:block!important;
+    min-height:0!important;
+    height:auto!important;
+    overflow:visible!important;
+    border:0!important;
+    background:transparent!important;
+    padding:0!important;
+    margin:0!important;
+    font-size:6.8pt!important;
+    line-height:1.22!important;
+    white-space:pre-wrap!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+}
+</style>
 
 <script id="clinimers-spo2-editable-responsive">
 (function(){
