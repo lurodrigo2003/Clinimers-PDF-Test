@@ -15272,4 +15272,245 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   window.addEventListener('pageshow',clean);
 })();
 </script>
+
+<script id="clinimers-wasserman-editable-summary">
+(function(){
+  let lastAuto='';
+
+  function txt(id){
+    const el=document.getElementById(id);
+    if(!el) return '';
+    return String(('value' in el ? el.value : el.textContent)||'').replace(/\s+/g,' ').trim();
+  }
+  function valid(v){ return v && v!=='—' && !/aguardando|indispon|não dispon/i.test(v); }
+
+  function addBox(){
+    if(document.getElementById('wassermanSummaryEditable')) return document.getElementById('wassermanSummaryText');
+    const sec=document.getElementById('wassermanSection');
+    if(!sec) return null;
+    const box=document.createElement('div');
+    box.id='wassermanSummaryEditable';
+    box.className='interpretation-box';
+    box.style.marginTop='10px';
+    box.innerHTML=
+      '<div style="font-weight:700;margin-bottom:6px">Interpretação resumida dos 9 gráficos de Wasserman</div>'+
+      '<textarea id="wassermanSummaryText" class="clinical-editor" spellcheck="true" '+
+      'style="width:100%;min-height:150px;resize:vertical;box-sizing:border-box;font:inherit;line-height:1.35;padding:8px" '+
+      'placeholder="A análise automática será preenchida após o processamento do exame e poderá ser editada."></textarea>';
+    sec.appendChild(box);
+    const ta=document.getElementById('wassermanSummaryText');
+    ta.addEventListener('input',()=>{ if(ta.value.trim()!==lastAuto) ta.dataset.manual='1'; });
+    return ta;
+  }
+
+  function build(){
+    const c1=[],c2=[],c3=[];
+
+    // COLUNA 1: painéis 1, 4 e 7 — ventilação, eficiência ventilatória e padrão ventilatório.
+    const slope=txt('slope'), slopeClass=txt('slopeClass');
+    const br=txt('br'), brClass=txt('brClass');
+    if(valid(slope)) c1.push('VE/VCO₂ slope '+slope+(valid(slopeClass)?' ('+slopeClass+')':''));
+    if(valid(br)) c1.push('reserva ventilatória '+br+(valid(brClass)?' ('+brClass+')':''));
+    const eov=(window._patientEOV && window._patientEOV.present);
+    c1.push(eov?'há ventilação oscilatória ao esforço':'sem evidências de ventilação oscilatória ao esforço');
+    const col1='Coluna 1 — Resposta ventilatória: '+c1.join('; ')+'.';
+
+    // COLUNA 2: painéis 2, 5 e 8 — FC/pulso O2, V-slope, RER e SpO2.
+    const pulse=txt('o2pulse'), pulseClass=txt('o2pulseClass'), pulseCurve=txt('o2pulseCurve');
+    const rer=txt('rer');
+    const lav=txt('lavVo2') || txt('vt1Vo2') || txt('vo2Lav');
+    const spo2Edit=txt('spo2InterpretationEditor') || txt('spo2InterpretationText');
+    if(valid(pulse)) c2.push('pulso de O₂ pico '+pulse+' mL/batimento'+(valid(pulseClass)?' ('+pulseClass+')':''));
+    if(valid(pulseCurve)) c2.push('curva do pulso de O₂ '+pulseCurve);
+    if(valid(lav)) c2.push('LAV identificado em VO₂ '+lav);
+    else c2.push('LAV representado pelo ponto de inflexão do V-slope definido no exame');
+    if(valid(rer)) c2.push('RER pico '+rer);
+    if(valid(spo2Edit)) c2.push(spo2Edit.replace(/\.$/,''));
+    const col2='Coluna 2 — Resposta cardiovascular e metabólica: '+c2.join('; ')+'.';
+
+    // COLUNA 3: painéis 3, 6 e 9 — VO2/VCO2, equivalentes e pressões expiratórias finais.
+    const vo2=txt('vo2peak') || txt('vo2Peak') || txt('vo2max');
+    const vo2pct=txt('vo2pct') || txt('vo2Pct');
+    const petR=txt('petco2Rest'),petL=txt('petco2Lav'),petP=txt('petco2Pcr'),petPk=txt('petco2Peak'),petClass=txt('petco2Class');
+    if(valid(vo2)) c3.push('VO₂ pico '+vo2+(valid(vo2pct)?' ('+vo2pct+' do previsto)':''));
+    c3.push('equivalentes ventilatórios analisados em relação ao LAV e ao PCR');
+    const pv=[];
+    if(valid(petR)) pv.push('repouso '+petR);
+    if(valid(petL)) pv.push('LAV '+petL);
+    if(valid(petP)) pv.push('PCR '+petP);
+    if(valid(petPk)) pv.push('pico '+petPk);
+    if(pv.length) c3.push('PetCO₂: '+pv.join(', ')+' mmHg'+(valid(petClass)?' ('+petClass+')':''));
+    const col3='Coluna 3 — Trocas gasosas e limiares: '+c3.join('; ')+'.';
+
+    // Só considera a análise pronta quando já existem dados fisiológicos reais.
+    if(!valid(slope) && !valid(br) && !valid(pulse) && !valid(petPk) && !valid(rer)) return '';
+    return [col1,col2,col3].join('\n\n');
+  }
+
+  function refresh(){
+    const ta=addBox(); if(!ta) return;
+    const auto=build(); if(!auto) return;
+    if(ta.dataset.manual==='1') return;
+    ta.value=auto;
+    lastAuto=auto;
+    ta.dataset.seeded='1';
+    ta.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+
+  function init(){
+    addBox();
+    [300,800,1500,3000].forEach(ms=>setTimeout(refresh,ms));
+    const sec=document.getElementById('wassermanSection');
+    if(sec) new MutationObserver(()=>setTimeout(refresh,0)).observe(sec,{attributes:true,subtree:true,childList:true,characterData:true});
+    document.addEventListener('change',()=>setTimeout(refresh,50),true);
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
+  window.addEventListener('load',()=>setTimeout(refresh,300),{once:true});
+})();
+</script>
+
+<script id="clinimers-spo2-editable-responsive">
+(function(){
+  let autoWriting=false;
+  let lastAutoText='';
+
+  function byId(id){ return document.getElementById(id); }
+  function clean(v){ return String(v||'').replace(/\s+/g,' ').trim(); }
+
+  function ensureEditableBox(){
+    const wrap=byId('spo2Interpretation');
+    const old=byId('spo2InterpretationText');
+    if(!wrap || !old) return null;
+
+    let ta=byId('spo2InterpretationEditor');
+    if(ta) return ta;
+
+    ta=document.createElement('textarea');
+    ta.id='spo2InterpretationEditor';
+    ta.className='clinical-editor';
+    ta.spellcheck=true;
+    ta.style.cssText='display:block;width:100%;min-height:82px;resize:vertical;box-sizing:border-box;margin-top:7px;padding:8px;font:inherit;line-height:1.35;';
+    ta.value=clean(old.textContent);
+    lastAutoText=ta.value;
+
+    old.style.display='none';
+    old.insertAdjacentElement('afterend',ta);
+
+    ta.addEventListener('input',function(){
+      if(autoWriting) return;
+      syncFromEditor();
+    });
+    return ta;
+  }
+
+  function conclusionBox(){
+    return byId('conclusionEditor') || byId('conclusionSuggestion');
+  }
+
+  function replaceSpo2Sentence(text, newText){
+    if(!text) return text;
+    const patterns=[
+      /A SpO₂ foi de[\s\S]*?(?=\n|$)/i,
+      /SpO₂ de\s*\d+(?:[.,]\d+)?%[\s\S]*?(?:esforço\.|significativa\.|esforço\.)/i,
+      /(?:queda significativa|ausência de queda significativa) da saturação de O₂[^.\n]*\./i
+    ];
+    let out=text;
+    for(const re of patterns){
+      if(re.test(out)) return out.replace(re,newText);
+    }
+    return out;
+  }
+
+  function syncFromEditor(){
+    const ta=byId('spo2InterpretationEditor');
+    if(!ta) return;
+    const txt=clean(ta.value);
+    if(!txt) return;
+
+    // Corpo do laudo: a interpretação editada passa a ser a frase oficial.
+    const line=byId('spo2ReportLine');
+    if(line){
+      line.textContent=txt;
+      line.dataset.spo2Manual='1';
+    }
+
+    // Conclusão editável/sugerida: substitui apenas a frase referente à SpO₂.
+    const cb=conclusionBox();
+    if(cb){
+      const isInput=('value' in cb);
+      const cur=isInput ? cb.value : cb.textContent;
+      const next=replaceSpo2Sentence(cur,txt);
+      if(next!==cur){
+        if(isInput) cb.value=next; else cb.textContent=next;
+        cb.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+    }
+  }
+
+  function captureAutomaticInterpretation(){
+    const old=byId('spo2InterpretationText');
+    const ta=ensureEditableBox();
+    if(!old || !ta) return;
+
+    const auto=clean(old.textContent);
+    if(!auto || /aguardando dados/i.test(auto)) return;
+
+    // Atualiza automaticamente enquanto o usuário ainda não personalizou o texto.
+    const current=clean(ta.value);
+    if(!current || current===lastAutoText || /aguardando dados/i.test(current)){
+      autoWriting=true;
+      ta.value=auto;
+      lastAutoText=auto;
+      autoWriting=false;
+      syncFromEditor();
+    }
+  }
+
+  function init(){
+    const ta=ensureEditableBox();
+    if(!ta) return;
+    captureAutomaticInterpretation();
+
+    const old=byId('spo2InterpretationText');
+    if(old){
+      new MutationObserver(function(){ captureAutomaticInterpretation(); })
+        .observe(old,{childList:true,subtree:true,characterData:true});
+    }
+
+    // Reaplica a edição depois de recalculações que reconstruam corpo/conclusão.
+    document.addEventListener('input',function(e){
+      if(e.target===ta) return;
+      if(clean(ta.value) && clean(ta.value)!==lastAutoText){
+        setTimeout(syncFromEditor,0);
+      }
+    },true);
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
+})();
+</script>
+
+<style id="clinimers-spo2-editable-responsive-style">
+#spo2InterpretationEditor{background:#fff;border:1px solid #bfcfc7;border-radius:7px;color:#172820}
+@media print{
+  #spo2InterpretationEditor{
+    display:block!important;
+    width:100%!important;
+    min-height:0!important;
+    height:auto!important;
+    overflow:visible!important;
+    resize:none!important;
+    border:0!important;
+    background:transparent!important;
+    padding:0!important;
+    margin:0!important;
+    font-size:8pt!important;
+    line-height:1.35!important;
+    color:#172820!important;
+  }
+}
+</style>
 </body></html>
