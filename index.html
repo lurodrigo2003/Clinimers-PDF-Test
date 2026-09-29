@@ -14155,7 +14155,9 @@ async function clinimersBuildCloudPdfBlob(clinicId){
 }
 </style>
 `;
-  const html='<!doctype html><html><head><meta charset="utf-8">'+head+compactPaginationStyle+
+  const pdfPatientName=String(valueOf('name')||'Paciente').replace(/[<>:"/\\|?*]+/g,' ').replace(/\s+/g,' ').trim();
+  const pdfTitle='TCP - '+pdfPatientName;
+  const html='<!doctype html><html><head><meta charset="utf-8"><title>'+pdfTitle.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</title>'+head+compactPaginationStyle+
     '</head><body class="integral-printing">'+stageHtml+'</body></html>';
 
   // Evita o limite de tamanho do POST do Netlify:
@@ -14326,7 +14328,8 @@ async function saveExamCloud(providedPdfBlob=null){
   try{
     clinimersCloudSaveStatus(providedPdfBlob ? 'Salvando o mesmo PDF na nuvem…' : 'Gerando PDF…');
     const pdfBlob=providedPdfBlob || await clinimersBuildCloudPdfBlob(clinic.id);
-    pdfPath=`${base}/laudo.pdf`;
+    const pdfFileName='TCP - '+safeFileName(patient)+'.pdf';
+    pdfPath=`${base}/${pdfFileName}`;
     clinimersCloudSaveStatus('Salvando PDF…');
     await uploadObject(pdfPath,pdfBlob,'application/pdf');
   }catch(pdfErr){
@@ -14456,7 +14459,7 @@ window.clinimersExportCloudFile=async (id,kind)=>{
   if(error||!data){alert('Não foi possível localizar o exame remoto.');return}
   if(kind==='xml')await cloudDownload(data.xml_path,data.xml_name||'exame.xml');
   else if(kind==='tcp')await cloudDownload(data.tcp_path,data.tcp_name||'exame.tcp');
-  else if(kind==='pdf')await cloudDownload(data.pdf_path,'laudo.pdf');
+  else if(kind==='pdf')await cloudDownload(data.pdf_path,'TCP - '+safeFileName(data.patient_name||'Paciente')+'.pdf');
 };
 window.clinimersDeleteCloudExam=async id=>{
   await refreshUser();
@@ -15315,17 +15318,15 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     c1.push(eov?'há ventilação oscilatória ao esforço':'sem evidências de ventilação oscilatória ao esforço');
     const col1='Coluna 1 — Resposta ventilatória: '+c1.join('; ')+'.';
 
-    // COLUNA 2: painéis 2, 5 e 8 — FC/pulso O2, V-slope, RER e SpO2.
+    // COLUNA 2: painéis 2, 5 e 8 — FC/pulso O2, V-slope e RER. A SpO2 não integra esta análise dos gráficos de Wasserman.
     const pulse=txt('o2pulse'), pulseClass=txt('o2pulseClass'), pulseCurve=txt('o2pulseCurve');
     const rer=txt('rer');
     const lav=txt('lavVo2') || txt('vt1Vo2') || txt('vo2Lav');
-    const spo2Edit=txt('spo2InterpretationEditor') || txt('spo2InterpretationText');
     if(valid(pulse)) c2.push('pulso de O₂ pico '+pulse+' mL/batimento'+(valid(pulseClass)?' ('+pulseClass+')':''));
     if(valid(pulseCurve)) c2.push('curva do pulso de O₂ '+pulseCurve);
     if(valid(lav)) c2.push('LAV identificado em VO₂ '+lav);
     else c2.push('LAV representado pelo ponto de inflexão do V-slope definido no exame');
     if(valid(rer)) c2.push('RER pico '+rer);
-    if(valid(spo2Edit)) c2.push(spo2Edit.replace(/\.$/,''));
     const col2='Coluna 2 — Resposta cardiovascular e metabólica: '+c2.join('; ')+'.';
 
     // COLUNA 3: painéis 3, 6 e 9 — VO2/VCO2, equivalentes e pressões expiratórias finais.
@@ -15417,6 +15418,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 <script id="clinimers-spo2-editable-responsive">
 (function(){
+  let syncing=false;
   let autoWriting=false;
   let lastAutoText='';
 
@@ -15427,10 +15429,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     const wrap=byId('spo2Interpretation');
     const old=byId('spo2InterpretationText');
     if(!wrap || !old) return null;
-
     let ta=byId('spo2InterpretationEditor');
     if(ta) return ta;
-
     ta=document.createElement('textarea');
     ta.id='spo2InterpretationEditor';
     ta.className='clinical-editor';
@@ -15438,98 +15438,126 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     ta.style.cssText='display:block;width:100%;min-height:82px;resize:vertical;box-sizing:border-box;margin-top:7px;padding:8px;font:inherit;line-height:1.35;';
     ta.value=clean(old.textContent);
     lastAutoText=ta.value;
-
     old.style.display='none';
     old.insertAdjacentElement('afterend',ta);
-
-    ta.addEventListener('input',function(){
-      if(autoWriting) return;
-      syncFromEditor();
-    });
     return ta;
+  }
+
+  function ensureBodyEditable(){
+    const line=byId('spo2ReportLine');
+    if(!line) return null;
+    line.contentEditable='true';
+    line.spellcheck=true;
+    line.classList.add('clinimers-spo2-body-editable');
+    line.title='Frase editável. Alterações são sincronizadas com o box de SpO₂ e a conclusão.';
+    return line;
   }
 
   function conclusionBox(){
     return byId('conclusionEditor') || byId('conclusionSuggestion');
   }
 
-  function replaceSpo2Sentence(text, newText){
-    if(!text) return text;
-    const patterns=[
-      /A SpO₂ foi de[\s\S]*?(?=\n|$)/i,
-      /SpO₂ de\s*\d+(?:[.,]\d+)?%[\s\S]*?(?:esforço\.|significativa\.|esforço\.)/i,
-      /(?:queda significativa|ausência de queda significativa) da saturação de O₂[^.\n]*\./i
-    ];
-    let out=text;
-    for(const re of patterns){
-      if(re.test(out)) return out.replace(re,newText);
-    }
-    return out;
+  function getText(el){
+    if(!el) return '';
+    return clean(('value' in el) ? el.value : el.textContent);
+  }
+  function setText(el,text){
+    if(!el) return;
+    if('value' in el) el.value=text;
+    else el.textContent=text;
   }
 
-  function syncFromEditor(){
-    const ta=byId('spo2InterpretationEditor');
-    if(!ta) return;
-    const txt=clean(ta.value);
-    if(!txt) return;
-
-    // Corpo do laudo: a interpretação editada passa a ser a frase oficial.
-    const line=byId('spo2ReportLine');
-    if(line){
-      line.textContent=txt;
-      line.dataset.spo2Manual='1';
+  function replaceSpo2Sentence(text,newText){
+    if(!text) return text;
+    const patterns=[
+      /A SpO₂ foi de[^.\n]*\./i,
+      /SpO₂ de[^.\n]*\./i,
+      /(?:queda significativa|ausência de queda significativa) da saturação de O₂[^.\n]*\./i,
+      /[^.\n]*(?:SpO₂|saturação de O₂)[^.\n]*\./i
+    ];
+    for(const re of patterns){
+      if(re.test(text)) return text.replace(re,newText);
     }
+    return text;
+  }
 
-    // Conclusão editável/sugerida: substitui apenas a frase referente à SpO₂.
-    const cb=conclusionBox();
-    if(cb){
-      const isInput=('value' in cb);
-      const cur=isInput ? cb.value : cb.textContent;
-      const next=replaceSpo2Sentence(cur,txt);
-      if(next!==cur){
-        if(isInput) cb.value=next; else cb.textContent=next;
-        cb.dispatchEvent(new Event('input',{bubbles:true}));
+  function extractSpo2Sentence(text){
+    text=clean(text);
+    if(!text) return '';
+    const matches=text.match(/[^.]*?(?:SpO₂|saturação de O₂)[^.]*\./ig);
+    if(matches && matches.length) return clean(matches[0]);
+    return '';
+  }
+
+  function syncOfficial(text,source){
+    const txt=clean(text);
+    if(!txt || syncing) return;
+    syncing=true;
+    try{
+      const ta=ensureEditableBox();
+      const line=ensureBodyEditable();
+      const cb=conclusionBox();
+
+      if(source!=='box' && ta && clean(ta.value)!==txt) ta.value=txt;
+      if(source!=='body' && line && clean(line.textContent)!==txt){
+        line.textContent=txt;
+        line.dataset.spo2Manual='1';
       }
+      if(source!=='conclusion' && cb){
+        const cur=getText(cb);
+        const next=replaceSpo2Sentence(cur,txt);
+        if(next!==cur) setText(cb,next);
+      }
+    }finally{
+      syncing=false;
     }
   }
 
   function captureAutomaticInterpretation(){
     const old=byId('spo2InterpretationText');
     const ta=ensureEditableBox();
-    if(!old || !ta) return;
-
+    const line=ensureBodyEditable();
+    if(!old || !ta || !line) return;
     const auto=clean(old.textContent);
     if(!auto || /aguardando dados/i.test(auto)) return;
-
-    // Atualiza automaticamente enquanto o usuário ainda não personalizou o texto.
     const current=clean(ta.value);
     if(!current || current===lastAutoText || /aguardando dados/i.test(current)){
       autoWriting=true;
       ta.value=auto;
       lastAutoText=auto;
       autoWriting=false;
-      syncFromEditor();
+      syncOfficial(auto,'auto');
     }
   }
 
   function init(){
     const ta=ensureEditableBox();
-    if(!ta) return;
-    captureAutomaticInterpretation();
+    const line=ensureBodyEditable();
+    if(!ta || !line) return;
 
+    ta.addEventListener('input',function(){
+      if(!autoWriting) syncOfficial(ta.value,'box');
+    });
+
+    line.addEventListener('input',function(){
+      syncOfficial(line.textContent,'body');
+    });
+
+    const cb=conclusionBox();
+    if(cb){
+      cb.addEventListener('input',function(){
+        if(syncing) return;
+        const sentence=extractSpo2Sentence(getText(cb));
+        if(sentence) syncOfficial(sentence,'conclusion');
+      });
+    }
+
+    captureAutomaticInterpretation();
     const old=byId('spo2InterpretationText');
     if(old){
       new MutationObserver(function(){ captureAutomaticInterpretation(); })
         .observe(old,{childList:true,subtree:true,characterData:true});
     }
-
-    // Reaplica a edição depois de recalculações que reconstruam corpo/conclusão.
-    document.addEventListener('input',function(e){
-      if(e.target===ta) return;
-      if(clean(ta.value) && clean(ta.value)!==lastAutoText){
-        setTimeout(syncFromEditor,0);
-      }
-    },true);
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
@@ -15538,6 +15566,10 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 
 <style id="clinimers-spo2-editable-responsive-style">
+.clinimers-spo2-body-editable{outline:1px dashed #b8c9c1;outline-offset:3px;border-radius:4px}
+.clinimers-spo2-body-editable:focus{outline:2px solid #7aa58f;background:#f8fbf9}
+@media print{.clinimers-spo2-body-editable{outline:0!important;background:transparent!important}}
+
 #spo2InterpretationEditor{background:#fff;border:1px solid #bfcfc7;border-radius:7px;color:#172820}
 @media print{
   #spo2InterpretationEditor{
