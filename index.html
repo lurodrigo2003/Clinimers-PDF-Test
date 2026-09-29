@@ -14135,6 +14135,24 @@ async function clinimersBuildCloudPdfBlob(clinicId){
     display: none !important;
   }
 }
+
+/* PDF FIX: permitir que o laudo comece logo após o resumo da página 2 */
+.integral-clinical-print{
+  break-before:auto!important;
+  page-break-before:auto!important;
+}
+.integral-clinical-print .patient,
+.integral-clinical-print .patient.card{
+  break-after:avoid-page!important;
+  page-break-after:avoid!important;
+  margin-bottom:2mm!important;
+}
+.integral-clinical-print main.report,
+.integral-clinical-print .report{
+  break-before:auto!important;
+  page-break-before:auto!important;
+  margin-top:0!important;
+}
 </style>
 `;
   const html='<!doctype html><html><head><meta charset="utf-8">'+head+compactPaginationStyle+
@@ -14389,41 +14407,7 @@ async function cloudDownload(path, suggestedName, openInNewTab=false){
       return;
     }
     try{
-      targetWindow.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Abrindo exame…</title>
-<style id="clinimers-pdf-page2-fix">
-@media print{
-  /* A capa já encerra com uma quebra de página. Não forçar uma segunda
-     quebra no início do conteúdo clínico. */
-  .integral-print-cover{
-    break-after:page!important;
-    page-break-after:always!important;
-  }
-  .integral-clinical-print{
-    break-before:auto!important;
-    page-break-before:auto!important;
-  }
-
-  /* Dados do paciente e início do laudo pertencem à mesma página 2. */
-  .integral-clinical-print .patient,
-  .integral-clinical-print .patient.card{
-    break-after:avoid-page!important;
-    page-break-after:avoid!important;
-    margin-bottom:2mm!important;
-  }
-  .integral-clinical-print main.report,
-  .integral-clinical-print .report{
-    break-before:auto!important;
-    page-break-before:auto!important;
-    margin-top:0!important;
-  }
-  .integral-clinical-print .report > h2:first-child{
-    break-before:auto!important;
-    page-break-before:auto!important;
-    margin-top:0!important;
-  }
-}
-</style>
-</head><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:32px">Abrindo exame da Nuvem Clinimers…</body></html>');
+      targetWindow.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Abrindo exame…</title></head><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:32px">Abrindo exame da Nuvem Clinimers…</body></html>');
       targetWindow.document.close();
     }catch(e){}
   }
