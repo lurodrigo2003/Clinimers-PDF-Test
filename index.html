@@ -15253,28 +15253,32 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   async function runUnifiedFlow(){
     if(busy) return;
 
-    // Depois de um salvamento confirmado, novos cliques não geram nem salvam de novo.
-    if(clinimersSavedPdfBlob){
-      if(!reopenSavedPdf()) alert('Não foi possível abrir o PDF já salvo.');
-      return;
-    }
-
     busy=true;
     const btn=document.getElementById('printPdfBtn');
     const oldText=btn?.textContent||'Imprimir / PDF';
     if(btn){ btn.disabled=true; btn.textContent='Gerando PDF…'; }
 
     try{
-      show('Preparando o PDF para impressão…');
+      const confirmBtn=document.getElementById('confirmBtn');
+      const isConfirmed=!!(confirmBtn && confirmBtn.dataset.examConfirmed==='1');
+
+      // Se o laudo está confirmado e o PDF definitivo desta mesma confirmação
+      // já foi salvo nesta sessão, apenas reabre exatamente o arquivo arquivado.
+      if(isConfirmed && clinimersSavedPdfBlob){
+        hide();
+        if(!reopenSavedPdf()) alert('Não foi possível abrir o PDF definitivo já salvo.');
+        if(btn){ btn.disabled=false; btn.textContent=oldText; }
+        busy=false;
+        return;
+      }
+
+      show(isConfirmed ? 'Gerando o PDF definitivo…' : 'Gerando prévia atualizada do PDF…');
       const ctx=await window.clinimersRequireClinic();
 
-      // UMA geração. Este blob será usado tanto para imprimir quanto para salvar.
+      // Sempre gera a partir do estado ATUAL do laudo enquanto estiver em edição.
       const pdfBlob=await window.clinimersBuildCloudPdfBlob(ctx.clinic.id);
 
-      // Inicia o salvamento do MESMO blob em segundo plano.
-      const cloudSavePromise=Promise.resolve(window.clinimersSaveExamCloud(pdfBlob));
-
-      show('PDF pronto. Abrindo a impressão…');
+      // Abre/imprime o mesmo blob que está sendo visualizado.
       try{
         await printBlob(pdfBlob);
       }catch(printErr){
@@ -15282,22 +15286,22 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         const url=URL.createObjectURL(pdfBlob);
         window.open(url,'_blank');
         setTimeout(()=>URL.revokeObjectURL(url),180000);
-        toast('PDF gerado. Use o botão de imprimir do visualizador.',true);
       }
 
-      // Mesmo sendo secundário, o processo só é marcado como concluído após confirmar a nuvem.
-      show('Impressão liberada. Finalizando o salvamento de PDF, XML e TCP na nuvem…');
-      try{
-        await cloudSavePromise;
-        // Só guarda para reutilização depois da confirmação real do salvamento.
+      if(!isConfirmed){
+        // PRÉVIA: não arquiva PDF/XML/TCP e não reutiliza este blob.
+        // Qualquer novo clique gera novamente, incorporando as alterações atuais.
+        show('Prévia gerada. O laudo ainda não foi confirmado; nada foi arquivado definitivamente na nuvem.');
+        toast('Prévia atualizada. Confirme o laudo quando estiver pronto para arquivar o PDF definitivo.',true);
+        await new Promise(r=>setTimeout(r,900));
+      }else{
+        // DEFINITIVO: somente após confirmação salva o MESMO PDF + fontes na nuvem.
+        show('Laudo confirmado. Salvando PDF definitivo, XML e TCP na nuvem…');
+        await window.clinimersSaveExamCloud(pdfBlob);
         clinimersSavedPdfBlob=pdfBlob;
-        show('Concluído: PDF, XML e TCP salvos na nuvem.');
-        toast('Concluído: PDF, XML e TCP salvos na nuvem. Se imprimir novamente, abrirei este mesmo PDF.',true);
-        await new Promise(r=>setTimeout(r,1300));
-      }catch(saveErr){
-        console.error('Falha no salvamento secundário em nuvem',saveErr);
-        toast('O PDF foi gerado, mas o salvamento na nuvem não foi concluído: '+(saveErr?.message||saveErr),false);
-        throw new Error('PDF gerado, porém o salvamento na nuvem falhou: '+(saveErr?.message||saveErr));
+        show('Concluído: laudo confirmado e PDF definitivo salvo na nuvem.');
+        toast('PDF definitivo, XML e TCP salvos na nuvem.',true);
+        await new Promise(r=>setTimeout(r,1000));
       }
 
       hide();
@@ -15311,6 +15315,16 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       alert('Não foi possível gerar o PDF: '+(err?.message||err));
     }
   }
+
+
+  window.addEventListener('clinimers-report-invalidated',function(){
+    clinimersSavedPdfBlob=null;
+    if(clinimersSavedPdfUrl){
+      try{URL.revokeObjectURL(clinimersSavedPdfUrl)}catch(_e){}
+      clinimersSavedPdfUrl=null;
+    }
+  });
+
 
   function bind(){
     ensureUi();
@@ -15840,6 +15854,38 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',install,{once:true});
   else install();
+})();
+</script>
+
+
+<script id="clinimers-fluxo-confirmacao-pdf-definitivo">
+(function(){
+  function invalidateConfirmation(ev){
+    const t=ev && ev.target;
+    if(!t) return;
+
+    // Não invalida por controles de navegação/arquivo/botões.
+    if(t.closest && t.closest('#clinimersCloudModal,#examArchiveModal')) return;
+    if(t.id==='file' || t.id==='tcpFile') return;
+
+    const b=document.getElementById('confirmBtn');
+    if(!b || b.dataset.examConfirmed!=='1') return;
+
+    b.dataset.examConfirmed='';
+    b.textContent='Confirmar laudo';
+    try{ smartConfirmed=false; }catch(_e){ window.smartConfirmed=false; }
+
+    // O PDF anteriormente arquivado deixa de representar o estado atual.
+    // As variáveis são do script de fluxo e serão limpas pelo evento abaixo.
+    window.dispatchEvent(new CustomEvent('clinimers-report-invalidated'));
+
+    const st=document.getElementById('status');
+    if(st) st.textContent='Laudo alterado — requer nova confirmação. “Imprimir / PDF” gerará apenas uma prévia atualizada.';
+  }
+
+  // input cobre campos/textareas/contenteditable; change cobre selects/checkboxes.
+  document.addEventListener('input',invalidateConfirmation,true);
+  document.addEventListener('change',invalidateConfirmation,true);
 })();
 </script>
 
