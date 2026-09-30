@@ -15797,40 +15797,43 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 
 
-<script id="clinimers-wasserman-interpretacao-abaixo-final">
+<script id="clinimers-wasserman-fluxo-real-corrigido">
 (function(){
   function install(){
-    if(document.getElementById('clinimers-wasserman-interpretacao-abaixo-final-css')) return;
+    if(document.getElementById('clinimers-wasserman-fluxo-real-corrigido-css')) return;
     const st=document.createElement('style');
-    st.id='clinimers-wasserman-interpretacao-abaixo-final-css';
+    st.id='clinimers-wasserman-fluxo-real-corrigido-css';
     st.textContent=`
 @media print{
   #wassermanSection .wasserman-grid{
-    position:relative!important;
-    float:none!important;
     display:grid!important;
-    margin-bottom:0!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    grid-template-rows:repeat(3,62mm)!important;
+    height:auto!important;
+    min-height:192mm!important;
+    max-height:none!important;
+    overflow:visible!important;
+    gap:3mm 3.5mm!important;
+    margin:0!important;
   }
-  #wassermanSection .wasserman-grid::after{
-    content:"";
-    display:block;
-    clear:both;
+  #wassermanSection .wasserman-panel{
+    height:62mm!important;
+    min-height:62mm!important;
+    max-height:62mm!important;
+  }
+  #wassermanSection .wasserman-panel canvas{
+    height:62mm!important;
+    min-height:62mm!important;
+    max-height:62mm!important;
   }
   #wassermanSummaryEditable{
-    position:relative!important;
+    position:static!important;
+    display:block!important;
     float:none!important;
     clear:both!important;
-    display:block!important;
     width:100%!important;
-    box-sizing:border-box!important;
     margin:5mm 0 0!important;
     transform:none!important;
-    top:auto!important;
-    left:auto!important;
-  }
-  #wassermanSummaryText{
-    position:relative!important;
-    display:block!important;
   }
 }`;
     document.head.appendChild(st);
