@@ -15796,4 +15796,27 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
+
+<script id="clinimers-wasserman-espacamento-final">
+(function(){
+  function install(){
+    if(document.getElementById('clinimers-wasserman-espacamento-final-css')) return;
+    const st=document.createElement('style');
+    st.id='clinimers-wasserman-espacamento-final-css';
+    st.textContent=`
+@media print{
+  #wassermanSection .wasserman-grid{
+    margin-bottom:5mm!important;
+  }
+  #wassermanSummaryEditable{
+    margin-top:4mm!important;
+  }
+}`;
+    document.head.appendChild(st);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',install,{once:true});
+  else install();
+})();
+</script>
+
 </body></html>
