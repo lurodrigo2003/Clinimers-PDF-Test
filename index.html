@@ -15317,6 +15317,17 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   }
 
 
+
+  window.addEventListener('clinimers-confirmed-pdf-saved',function(ev){
+    const blob=ev && ev.detail && ev.detail.blob;
+    if(!blob) return;
+    clinimersSavedPdfBlob=blob;
+    if(clinimersSavedPdfUrl){
+      try{URL.revokeObjectURL(clinimersSavedPdfUrl)}catch(_e){}
+      clinimersSavedPdfUrl=null;
+    }
+  });
+
   window.addEventListener('clinimers-report-invalidated',function(){
     clinimersSavedPdfBlob=null;
     if(clinimersSavedPdfUrl){
@@ -15886,6 +15897,87 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   // input cobre campos/textareas/contenteditable; change cobre selects/checkboxes.
   document.addEventListener('input',invalidateConfirmation,true);
   document.addEventListener('change',invalidateConfirmation,true);
+})();
+</script>
+
+
+<script id="clinimers-confirmar-salva-pdf-automatico">
+(function(){
+  let finalizing=false;
+
+  async function finalizeConfirmedReport(){
+    if(finalizing) return;
+
+    const btn=document.getElementById('confirmBtn');
+    if(!btn) return;
+
+    // Aguarda a rotina original de confirmação terminar.
+    await new Promise(r=>setTimeout(r,0));
+
+    if(btn.dataset.examConfirmed!=='1') return;
+
+    finalizing=true;
+    const originalText=btn.textContent;
+    const printBtn=document.getElementById('printPdfBtn');
+
+    try{
+      btn.disabled=true;
+      if(printBtn) printBtn.disabled=true;
+      btn.textContent='Confirmando e salvando…';
+
+      const st=document.getElementById('status');
+      if(st) st.textContent='Laudo confirmado. Gerando PDF definitivo e salvando na nuvem…';
+
+      const ctx=await window.clinimersRequireClinic();
+      const pdfBlob=await window.clinimersBuildCloudPdfBlob(ctx.clinic.id);
+
+      // Salva exatamente o PDF gerado no momento da confirmação + XML + TCP.
+      await window.clinimersSaveExamCloud(pdfBlob);
+
+      // Entrega o blob ao fluxo unificado para que Imprimir/PDF apenas reabra
+      // o mesmo PDF definitivo, sem gerar/salvar novamente.
+      window.dispatchEvent(new CustomEvent('clinimers-confirmed-pdf-saved',{
+        detail:{blob:pdfBlob}
+      }));
+
+      btn.textContent='✓ Laudo confirmado';
+      if(st) st.textContent='Laudo confirmado — PDF definitivo, XML e TCP salvos na nuvem.';
+
+      try{
+        if(typeof toast==='function')
+          toast('Laudo confirmado e PDF definitivo salvo na nuvem.',true);
+      }catch(_e){}
+
+    }catch(err){
+      // Se o arquivamento falhar, não deixa o exame parecer definitivamente concluído.
+      btn.dataset.examConfirmed='';
+      btn.textContent='Confirmar laudo';
+      try{ smartConfirmed=false; }catch(_e){ window.smartConfirmed=false; }
+
+      const st=document.getElementById('status');
+      if(st) st.textContent='Falha ao salvar o PDF definitivo. O laudo precisa ser confirmado novamente.';
+
+      alert('O laudo foi processado, mas não foi possível concluir o salvamento definitivo na nuvem: '+(err?.message||err));
+    }finally{
+      btn.disabled=false;
+      if(printBtn) printBtn.disabled=false;
+      finalizing=false;
+    }
+  }
+
+  function bind(){
+    const btn=document.getElementById('confirmBtn');
+    if(!btn || btn.dataset.cloudAutoSaveBound==='1') return;
+    btn.dataset.cloudAutoSaveBound='1';
+
+    // Bubble listener: a rotina original do botão executa antes desta.
+    btn.addEventListener('click',function(){
+      setTimeout(finalizeConfirmedReport,0);
+    });
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind,{once:true});
+  else bind();
 })();
 </script>
 
