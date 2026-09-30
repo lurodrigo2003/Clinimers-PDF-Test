@@ -1800,6 +1800,10 @@ td,th,.status,.note,.appendix-note,.spirometry-note{
 #syn tbody .syn-ltp1{background:#e8f4ef!important}
 #syn tbody .syn-ltp2{background:#fbf2e3!important}
 #syn tbody .syn-vo2max{background:#f0ecf5!important}
+#syn tbody tr.syn-key-variable td.syn-ltp1{background:#c7e4d8!important;font-weight:800}
+#syn tbody tr.syn-key-variable td.syn-ltp2{background:#efd8ad!important;font-weight:800}
+#syn tbody tr.syn-key-variable td.syn-vo2max{background:#d9cfe5!important;font-weight:800}
+#syn tbody tr.syn-key-variable td:first-child{font-weight:800}
 .rhythm-full-page{break-before:page;page-break-before:always;margin:0 0 8px}
 .rhythm-full-page:first-child{break-before:auto;page-break-before:auto}
 .rhythm-full-canvas{display:block;width:100%;height:auto;border:1px solid #b9c8c0;background:#fff}
@@ -2809,7 +2813,7 @@ body:not(.clinimers-auth-locked) #clinimersPublicLanding{display:none!important}
 
     <main class="card report">
       <h2>Teste Cardiopulmonar de Esforço</h2>
-      <h3>1. Caracterização do Exame e do Esforço</h3>
+      <h3 class="major-report-section-title">1. Caracterização do Exame e do Esforço</h3>
 
       <p id="examConditionsBlock">Exame realizado com
         <select id="examTreadmillAdaptation" class="inline-select">
@@ -2856,7 +2860,7 @@ body:not(.clinimers-auth-locked) #clinimersPublicLanding{display:none!important}
         </select><span id="motivoInterrupcaoPrint" class="print-only motivo-print"></span> aos <span class="tag" id="exaustao">—</span>.</p>
       <textarea id="clinicalCriteriaComment" class="clinical-editor clinical-criteria-editor" aria-label="Observações dos critérios clínicos">Paciente não apresentou sintomas ou alterações na ausculta cardiovascular.</textarea>
 
-      <h3>2. Resposta Eletrocardiográfica e Hemodinâmica</h3>
+      <h3 class="major-report-section-title">2. Resposta Eletrocardiográfica e Hemodinâmica</h3>
       <h4 class="clinical-subsection-band">A. Repouso</h4>
       <h5 class="clinical-subsection-item">A1. ECG de repouso</h5>
       <details id="restEcgDetails" class="ecg-config-panel"><summary>Configurações de ECG de repouso</summary>
@@ -3018,7 +3022,7 @@ body:not(.clinimers-auth-locked) #clinimersPublicLanding{display:none!important}
       PAS 3º min/PAS pico <span class="tag" id="pasratio">—</span> •
       PAS 3º min/PAS 1º min <span class="tag" id="pasratio31">—</span>.</p>
 
-      <h3>3. Resposta Cardiopulmonar ao Exercício</h3>
+      <h3 class="major-report-section-title">3. Resposta Cardiopulmonar ao Exercício</h3>
       <h4 class="clinical-subsection-band">A. Capacidade funcional e intensidade metabólica</h4>
       <p>Esforço de intensidade <span id="testLevel" class="tag clinimers-editable" contenteditable="true" spellcheck="false">aguardando dados</span>, atingindo RER de <span class="tag" id="rer">—</span>.</p>
       <p id="vo2PeakNarrative">O <span id="vo2PeakType">VO₂ pico</span> foi de <span class="tag" id="vo2abs">—</span> e o valor relativo ao peso corporal foi de <span class="tag" id="vo2rel">—</span> (<span class="tag" id="vo2relpct">—</span> do valor predito), <span id="vo2Class" class="tag clinimers-editable" contenteditable="true" spellcheck="false">Classificação aguardando dados</span>.</p>
@@ -3039,7 +3043,7 @@ body:not(.clinimers-auth-locked) #clinimersPublicLanding{display:none!important}
       <h4 class="clinical-subsection-band">D. Resposta ventilatória e trocas gasosas</h4>
       <p>A eficiência ventilatória apresentou VE/VCO₂ slope de <span class="tag" id="slope">—</span>, <span id="slopeClass" class="tag clinimers-editable" contenteditable="true" spellcheck="false">classificação aguardando dados</span>.</p>
       <p>A reserva ventilatória foi de <span class="tag" id="br">—</span>, encontrando-se <span id="brClass" class="tag clinimers-editable" contenteditable="true" spellcheck="false">classificação aguardando dados</span>.</p>
-      <p id="spo2ReportLine">A SpO₂ foi de <span class="tag" id="spo2Rest">—</span> em repouso e <span class="tag" id="spo2Peak">—</span> ao final do esforço, correspondendo a <span class="tag" id="spo2Drop">—</span>, <span id="spo2Class" class="tag clinimers-editable" contenteditable="true" spellcheck="false">classificação aguardando dados</span>.</p>
+      <p id="spo2ReportLine">A SpO₂ foi de <span class="tag clinimers-editable" id="spo2Rest" contenteditable="true" spellcheck="false">—</span> em repouso e <span class="tag clinimers-editable" id="spo2Peak" contenteditable="true" spellcheck="false">—</span> ao final do esforço, correspondendo a <span class="tag clinimers-editable" id="spo2Drop" contenteditable="true" spellcheck="false">—</span>, <span id="spo2Class" class="tag clinimers-editable" contenteditable="true" spellcheck="false">classificação aguardando dados</span>.</p>
       <p>A PETCO₂ foi de <span id="petco2Rest" class="tag clinimers-editable" contenteditable="true" spellcheck="false">—</span> mmHg em repouso, <span id="petco2Lav" class="tag clinimers-editable" contenteditable="true" spellcheck="false">—</span> mmHg no LV1/LAV, <span id="petco2PcrWrap"><span id="petco2Pcr" class="tag clinimers-editable" contenteditable="true" spellcheck="false">—</span> mmHg no PCR e </span><span id="petco2Peak" class="tag clinimers-editable" contenteditable="true" spellcheck="false">—</span> mmHg no pico, <span id="petco2Class" class="tag clinimers-editable" contenteditable="true" spellcheck="false">interpretação aguardando dados</span><span id="petco2Delta" style="display:none">—</span>.</p>
 
       <h4 class="clinical-subsection-band">E. Índices integrativos e recuperação</h4>
@@ -3064,7 +3068,7 @@ body:not(.clinimers-auth-locked) #clinimersPublicLanding{display:none!important}
       </p>
       <p class="small muted">Estas faixas servem como referência fisiológica para individualização da intensidade e não constituem, isoladamente, prescrição de treinamento. LAV e PCR são utilizados como âncoras fisiológicas individuais obtidas no TCPE; o PCR é empregado operacionalmente como referência para a transição ao domínio severo.</p>
       </div>
-<h3 id="integratedConclusionTitle">5. Conclusão Integrada</h3>
+<h3 id="integratedConclusionTitle" class="major-report-section-title">5. Conclusão Integrada</h3>
       <div id="examClassification" class="exam-classification pending">
         <b id="examClassTitle">Classificação global: aguardando dados</b>
         <span id="examClassReason">A classificação será atualizada após a análise dos dados disponíveis.</span>
@@ -3102,7 +3106,7 @@ body:not(.clinimers-auth-locked) #clinimersPublicLanding{display:none!important}
     
 
       <section id="spirometrySection" class="spirometry-section" style="display:none">
-        <h3 id="spirometrySectionTitle">Espirometria pré-teste</h3>
+        <h3 id="spirometrySectionTitle" class="major-report-section-title">Espirometria pré-teste</h3>
 
         <div class="spirometry-top-row">
           <div class="spirometry-table-wrap">
@@ -3148,7 +3152,7 @@ body:not(.clinimers-auth-locked) #clinimersPublicLanding{display:none!important}
           </div>
         </div>
         <div id="metabolicTimelineBlock" style="display:none;margin-top:16px;padding-top:12px;border-top:1px solid #d7e3dd;break-inside:avoid">
-          <div class="spirometry-subtitle">Gasto energético e oxidação de substratos ao longo do exame</div>
+          <div id="metabolicTimelineSectionTitle" class="major-report-section-title">8. Gasto energético e oxidação de substratos</div>
           <canvas id="metabolicTimelineCanvas" width="1000" height="360" style="display:block;width:100%;height:260px;border:1px solid #d7e3dd;border-radius:8px;background:#fff"></canvas>
           <div style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:6px;font-size:10px;color:#53645d"><span>Calorias (kcal/h)</span><span>Carboidrato (g/h)</span><span>Gordura (g/h)</span></div>
         </div>
@@ -5080,7 +5084,7 @@ function renderWassermanPanels(md,mh,mi,markerTimes={}){
     series:[{label:'VC',y:vtRaw,mode:'points'}],yLabel:'VC (L)',
     phaseBands:phaseBandsForX(veRaw)
   });
-  timeOpt('wPanel8','RER / SpO₂',[{label:'RER',y:rer},{label:'SpO₂/100',y:spo2.map(v=>Number.isFinite(v)?v/100:NaN)}],'RER / SpO₂');
+  timeOpt('wPanel8','RER',[{label:'RER',y:rer}],'RER');
   timeOpt('wPanel9','Pressões expiratórias finais',[{label:'PetO₂',y:peto2},{label:'PetCO₂',y:petco2}],'mmHg');
 
   sec.style.display='block';
@@ -5725,7 +5729,70 @@ function loadXML(text){
    return '—';
  };
  thead.innerHTML='<tr>'+columns.map(c=>`<th class="${synClass(c.h)}">${synLabel(c.h)}</th>`).join('')+'</tr>';
- tbody.innerHTML=data.map(r=>'<tr>'+columns.map(c=>`<td class="${synClass(c.h)}">${synValue(r,c)}</td>`).join('')+'</tr>').join('');
+ // Tabela sinótica: não exibir CHO; manter apenas Carboidrato.
+ // Agrupa as cinco variáveis-chave, nesta ordem, preservando a posição das demais linhas.
+ const synVarName=r=>norm(r?.[0]||'').trim();
+ const synTargetKey=r=>{
+   const v=synVarName(r).toLowerCase();
+   if(/^fc(?:\s|\(|$)|frequ[eê]ncia\s*card/i.test(v))return 'fc';
+   if(/^v$|^veloc/i.test(v))return 'velocidade';
+   if(/^carboidrato(?:s)?(?:\s|\(|$)/i.test(v))return 'carboidrato';
+   if(/^gordura(?:s)?(?:\s|\(|$)|^fat(?:\s|\(|$)|^lip[ií]d/i.test(v))return 'gordura';
+   if(/^caloria(?:s)?(?:\s|\(|$)|^kcal(?:\s|\(|$)/i.test(v))return 'caloria';
+   return '';
+ };
+ const synSeenKeyVars=new Set();
+ const cleanedData=data.filter(r=>{
+   const name=synVarName(r);
+   if(/^CHO(?:\s|\(|$)/i.test(name))return false;
+   const k=synTargetKey(r);
+   if(k){
+     if(synSeenKeyVars.has(k))return false;
+     synSeenKeyVars.add(k);
+   }
+   return true;
+ });
+ const targetOrder=['fc','velocidade','carboidrato','gordura','caloria'];
+ const targets={};
+ cleanedData.forEach(r=>{const k=synTargetKey(r);if(k&&!targets[k])targets[k]=r;});
+ const targetRows=targetOrder.map(k=>targets[k]).filter(Boolean);
+ const targetSet=new Set(targetRows);
+ const firstTarget=cleanedData.findIndex(r=>targetSet.has(r));
+ let synData=cleanedData;
+ if(firstTarget>=0){
+   const before=cleanedData.slice(0,firstTarget).filter(r=>!targetSet.has(r));
+   const beforeSet=new Set(before);
+   const after=cleanedData.filter(r=>!targetSet.has(r)&&!beforeSet.has(r));
+   synData=[...before,...targetRows,...after];
+ }
+ const synDisplayValue=(r,c)=>{
+   const val=synValue(r,c);
+   const raw=synVarName(r);
+   const key=synTargetKey(r);
+
+   if(c.h==='Variável'){
+     if(key==='fc')return 'FC';
+     if(key==='velocidade')return 'Velocidade';
+     if(key==='carboidrato')return 'Carboidrato';
+     if(key==='gordura')return 'Gordura';
+     if(key==='caloria')return 'Caloria';
+
+     if(/^I$/i.test(raw))return 'Inclinação';
+     if(/^%\s*BE$/i.test(raw))return 'Reserva respiratória';
+     if(/^FR$/i.test(raw))return 'Frequência respiratória';
+     if(/^V['’]?E$/i.test(raw))return 'Ventilação';
+     if(/^W$/i.test(raw))return 'Potência';
+     if(/^LA$/i.test(raw))return 'Lactato';
+     return val;
+   }
+
+   if(c.h==='Unidade' && /^Pace$/i.test(raw))return 'min/Km';
+   return val;
+ };
+ tbody.innerHTML=synData.map(r=>{
+   const rowClass=synTargetKey(r)?'syn-key-variable':'';
+   return `<tr class="${rowClass}">`+columns.map(c=>`<td class="${synClass(c.h)}">${synDisplayValue(r,c)}</td>`).join('')+'</tr>';
+ }).join('');
  patchSynopticBloodPressure();
  const tcpReapplied=applyCachedTCP({quiet:true});
  setTimeout(patchSynopticBloodPressure,0);
@@ -8051,7 +8118,13 @@ function analyzeTcpBloodPressureV105(t4){
   if(effort.length){
     let priorMax=effort[0].pas;
     for(const x of effort){
-      if(x.pas<rest.pas || (priorMax-x.pas)>=20) intraHypo=true;
+      // Evita falso-positivo por pequena oscilação inicial da PAS.
+      // Considera queda intraesforço quando há:
+      // 1) PAS absoluta < 90 mmHg; ou
+      // 2) após elevação inicial, queda >= 20 mmHg em relação ao maior valor prévio.
+      // Uma medida discretamente abaixo da PAS de repouso, isolada e seguida de
+      // elevação progressiva, não é classificada automaticamente como hipotensão.
+      if(x.pas<90 || (priorMax>rest.pas && (priorMax-x.pas)>=20)) intraHypo=true;
       priorMax=Math.max(priorMax,x.pas);
     }
   }
@@ -11306,10 +11379,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(spiTitle) spiTitle.textContent = athleteSelected ? '5. Espirometria pré-teste' : '6. Espirometria pré-teste';
     if(spo2Title) spo2Title.textContent = athleteSelected ? '6. SpO₂ × tempo' : '7. SpO₂ × tempo';
     if(athletePerfTitle) athletePerfTitle.textContent = athleteSelected ? '7. Avaliação de Performance do Atleta' : 'Avaliação de Performance do Atleta';
-    if(wassTitle) wassTitle.textContent = athleteSelected ? '8. Gráficos fisiológicos de Wasserman — 9 painéis' : '8. Gráficos fisiológicos de Wasserman — 9 painéis';
-    if(synTitle) synTitle.textContent = athleteSelected ? '9. Tabela sinótica' : '9. Tabela sinótica';
-    if(dataTitle) dataTitle.textContent = athleteSelected ? '10. Tabela de dados do exame' : '10. Tabela de dados do exame';
-    if(ecgRecordsTitle) ecgRecordsTitle.textContent = athleteSelected ? '11. Registros eletrocardiográficos' : '11. Registros eletrocardiográficos';
+    if(wassTitle) wassTitle.textContent = athleteSelected ? '9. Gráficos fisiológicos de Wasserman — 9 painéis' : '9. Gráficos fisiológicos de Wasserman — 9 painéis';
+    if(synTitle) synTitle.textContent = athleteSelected ? '10. Tabela sinótica' : '10. Tabela sinótica';
+    if(dataTitle) dataTitle.textContent = athleteSelected ? '11. Tabela de dados do exame' : '11. Tabela de dados do exame';
+    if(ecgRecordsTitle) ecgRecordsTitle.textContent = athleteSelected ? '12. Registros eletrocardiográficos' : '12. Registros eletrocardiográficos';
     try{ localStorage.setItem('clinimers.tcpeIntegral.atleta', athleteSelected ? '1':'0'); }catch(e){}
     if(athleteSelected){
       ensureAthleteLoaded();
@@ -15418,157 +15491,121 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 <script id="clinimers-spo2-editable-responsive">
 (function(){
-  let syncing=false;
-  let autoWriting=false;
-  let lastAutoText='';
+  let syncing=false, lastAuto='';
 
-  function byId(id){ return document.getElementById(id); }
-  function clean(v){ return String(v||'').replace(/\s+/g,' ').trim(); }
+  function byId(id){return document.getElementById(id)}
+  function clean(v){return String(v||'').replace(/\s+/g,' ').trim()}
 
-  function ensureEditableBox(){
-    const wrap=byId('spo2Interpretation');
-    const old=byId('spo2InterpretationText');
-    if(!wrap || !old) return null;
+  function ensureBox(){
+    const wrap=byId('spo2Interpretation'), old=byId('spo2InterpretationText');
+    if(!wrap||!old)return null;
     let ta=byId('spo2InterpretationEditor');
-    if(ta) return ta;
-    ta=document.createElement('textarea');
-    ta.id='spo2InterpretationEditor';
-    ta.className='clinical-editor';
-    ta.spellcheck=true;
-    ta.style.cssText='display:block;width:100%;min-height:82px;resize:vertical;box-sizing:border-box;margin-top:7px;padding:8px;font:inherit;line-height:1.35;';
-    ta.value=clean(old.textContent);
-    lastAutoText=ta.value;
-    old.style.display='none';
-    old.insertAdjacentElement('afterend',ta);
+    if(!ta){
+      ta=document.createElement('textarea');
+      ta.id='spo2InterpretationEditor';
+      ta.className='clinical-editor';
+      ta.spellcheck=true;
+      ta.style.cssText='display:block;width:100%;min-height:82px;resize:vertical;box-sizing:border-box;margin-top:7px;padding:8px;font:inherit;line-height:1.35;';
+      ta.value=clean(old.textContent);
+      old.style.display='none';
+      old.insertAdjacentElement('afterend',ta);
+    }
     return ta;
   }
 
-  function ensureBodyEditable(){
+  function prepareBody(){
     const line=byId('spo2ReportLine');
-    if(!line) return null;
-    line.contentEditable='true';
-    line.spellcheck=true;
-    line.classList.add('clinimers-spo2-body-editable');
-    line.title='Frase editável. Alterações são sincronizadas com o box de SpO₂ e a conclusão.';
-    return line;
+    if(!line)return;
+    // A FRASE NÃO É EDITÁVEL. Só os quatro campos abaixo.
+    line.removeAttribute('contenteditable');
+    line.contentEditable='false';
+    line.classList.remove('clinimers-spo2-body-editable');
+    ['spo2Rest','spo2Peak','spo2Drop','spo2Class'].forEach(id=>{
+      const e=byId(id);
+      if(e){
+        e.contentEditable='true';
+        e.spellcheck=false;
+        e.classList.add('clinimers-editable');
+      }
+    });
   }
 
-  function conclusionBox(){
-    return byId('conclusionEditor') || byId('conclusionSuggestion');
+  function bodySentence(){
+    const g=id=>clean(byId(id)?.textContent);
+    return `A SpO₂ foi de ${g('spo2Rest')} em repouso e ${g('spo2Peak')} ao final do esforço, correspondendo a ${g('spo2Drop')}, ${g('spo2Class')}.`;
   }
 
-  function getText(el){
-    if(!el) return '';
-    return clean(('value' in el) ? el.value : el.textContent);
-  }
-  function setText(el,text){
-    if(!el) return;
-    if('value' in el) el.value=text;
-    else el.textContent=text;
-  }
-
-  function replaceSpo2Sentence(text,newText){
-    if(!text) return text;
+  function conclusionBox(){return byId('conclusionEditor')||byId('conclusionSuggestion')}
+  function replaceSpo2(text,newText){
     const patterns=[
       /A SpO₂ foi de[^.\n]*\./i,
       /SpO₂ de[^.\n]*\./i,
       /(?:queda significativa|ausência de queda significativa) da saturação de O₂[^.\n]*\./i,
       /[^.\n]*(?:SpO₂|saturação de O₂)[^.\n]*\./i
     ];
-    for(const re of patterns){
-      if(re.test(text)) return text.replace(re,newText);
-    }
+    for(const re of patterns)if(re.test(text))return text.replace(re,newText);
     return text;
   }
 
-  function extractSpo2Sentence(text){
-    text=clean(text);
-    if(!text) return '';
-    const matches=text.match(/[^.]*?(?:SpO₂|saturação de O₂)[^.]*\./ig);
-    if(matches && matches.length) return clean(matches[0]);
-    return '';
-  }
-
-  function syncOfficial(text,source){
-    const txt=clean(text);
-    if(!txt || syncing) return;
+  function syncFromBody(){
+    if(syncing)return;
     syncing=true;
     try{
-      const ta=ensureEditableBox();
-      const line=ensureBodyEditable();
+      const txt=bodySentence();
+      const ta=ensureBox();
+      if(ta)ta.value=txt;
       const cb=conclusionBox();
-
-      if(source!=='box' && ta && clean(ta.value)!==txt) ta.value=txt;
-      if(source!=='body' && line && clean(line.textContent)!==txt){
-        line.textContent=txt;
-        line.dataset.spo2Manual='1';
+      if(cb){
+        const cur=('value' in cb)?cb.value:cb.textContent;
+        const next=replaceSpo2(cur,txt);
+        if(next!==cur){
+          if('value' in cb)cb.value=next; else cb.textContent=next;
+        }
       }
-      if(source!=='conclusion' && cb){
-        const cur=getText(cb);
-        const next=replaceSpo2Sentence(cur,txt);
-        if(next!==cur) setText(cb,next);
-      }
-    }finally{
-      syncing=false;
-    }
+    }finally{syncing=false}
   }
 
-  function captureAutomaticInterpretation(){
+  function captureAuto(){
     const old=byId('spo2InterpretationText');
-    const ta=ensureEditableBox();
-    const line=ensureBodyEditable();
-    if(!old || !ta || !line) return;
+    const ta=ensureBox();
+    if(!old||!ta)return;
     const auto=clean(old.textContent);
-    if(!auto || /aguardando dados/i.test(auto)) return;
-    const current=clean(ta.value);
-    if(!current || current===lastAutoText || /aguardando dados/i.test(current)){
-      autoWriting=true;
-      ta.value=auto;
-      lastAutoText=auto;
-      autoWriting=false;
-      syncOfficial(auto,'auto');
+    if(!auto||/aguardando dados/i.test(auto))return;
+    if(!lastAuto || clean(ta.value)===lastAuto || /aguardando dados/i.test(ta.value)){
+      // Os valores do corpo já são preenchidos pelo motor original.
+      // Aqui apenas espelhamos a frase estruturada, sem destruir seus spans.
+      lastAuto=bodySentence();
+      ta.value=lastAuto;
+      syncFromBody();
     }
   }
 
   function init(){
-    const ta=ensureEditableBox();
-    const line=ensureBodyEditable();
-    if(!ta || !line) return;
-
-    ta.addEventListener('input',function(){
-      if(!autoWriting) syncOfficial(ta.value,'box');
+    prepareBody();
+    const ta=ensureBox();
+    ['spo2Rest','spo2Peak','spo2Drop','spo2Class'].forEach(id=>{
+      const e=byId(id);
+      if(e){
+        e.addEventListener('input',syncFromBody);
+        e.addEventListener('blur',syncFromBody);
+      }
     });
-
-    line.addEventListener('input',function(){
-      syncOfficial(line.textContent,'body');
-    });
-
-    const cb=conclusionBox();
-    if(cb){
-      cb.addEventListener('input',function(){
-        if(syncing) return;
-        const sentence=extractSpo2Sentence(getText(cb));
-        if(sentence) syncOfficial(sentence,'conclusion');
-      });
-    }
-
-    captureAutomaticInterpretation();
+    captureAuto();
     const old=byId('spo2InterpretationText');
-    if(old){
-      new MutationObserver(function(){ captureAutomaticInterpretation(); })
-        .observe(old,{childList:true,subtree:true,characterData:true});
-    }
+    if(old)new MutationObserver(captureAuto).observe(old,{childList:true,subtree:true,characterData:true});
+    // Reaplica após o motor preencher/reconstruir o laudo.
+    setTimeout(prepareBody,500);
+    setTimeout(prepareBody,1600);
   }
 
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();
 </script>
 
 <style id="clinimers-spo2-editable-responsive-style">
-.clinimers-spo2-body-editable{outline:1px dashed #b8c9c1;outline-offset:3px;border-radius:4px}
-.clinimers-spo2-body-editable:focus{outline:2px solid #7aa58f;background:#f8fbf9}
-@media print{.clinimers-spo2-body-editable{outline:0!important;background:transparent!important}}
+#spo2ReportLine{outline:none!important;background:transparent!important}
+#spo2ReportLine .clinimers-editable{cursor:text}
 
 #spo2InterpretationEditor{background:#fff;border:1px solid #bfcfc7;border-radius:7px;color:#172820}
 @media print{
@@ -15589,4 +15626,127 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   }
 }
 </style>
+
+<style id="clinimers-safe-spo2-zones-style">
+#spo2ReportLine .clinimers-editable{cursor:text}
+#spo2ReportLine .clinimers-editable:focus{
+  outline:2px solid #7aa58f;outline-offset:2px;background:#f8fbf9;border-radius:3px
+}
+#integralAthleteZonesSafeWrap{margin:0 0 12px}
+#integralAthleteZonesSafeBtn{width:100%;font-weight:800}
+@media print{
+  #spo2ReportLine .clinimers-editable{outline:0!important;background:transparent!important}
+  #integralAthleteZonesSafeWrap{display:none!important}
+}
+</style>
+<script id="clinimers-safe-spo2-zones-patch">
+(function(){
+  function byId(id){return document.getElementById(id)}
+
+  function fixSpo2(){
+    var line=byId('spo2ReportLine');
+    if(!line)return;
+    line.contentEditable='false';
+    line.removeAttribute('contenteditable');
+    line.classList.remove('clinimers-spo2-body-editable');
+    line.removeAttribute('title');
+    ['spo2Rest','spo2Peak','spo2Drop','spo2Class'].forEach(function(id){
+      var el=byId(id);
+      if(el){
+        el.contentEditable='true';
+        el.setAttribute('contenteditable','true');
+        el.setAttribute('spellcheck','false');
+        el.classList.add('clinimers-editable');
+      }
+    });
+  }
+
+  function hideNativeAthleteButton(){
+    var frame=byId('integralAthleteFrame');
+    try{
+      var d=frame && frame.contentDocument;
+      if(!d)return;
+      var nativeBtn=d.getElementById('applyMarkersBtn');
+      if(nativeBtn){
+        nativeBtn.style.setProperty('display','none','important');
+        var actions=nativeBtn.closest('.marker-actions');
+        if(actions)actions.style.setProperty('display','none','important');
+      }
+    }catch(e){}
+  }
+
+  function ensureZonesButton(){
+    var toggleWrap=byId('integralAthleteToggleWrap');
+    var toggle=byId('integralAthleteToggle');
+    if(!toggleWrap || !toggle)return;
+
+    var wrap=byId('integralAthleteZonesSafeWrap');
+    if(!wrap){
+      wrap=document.createElement('div');
+      wrap.id='integralAthleteZonesSafeWrap';
+      wrap.className='no-print';
+      wrap.hidden=true;
+
+      var btn=document.createElement('button');
+      btn.id='integralAthleteZonesSafeBtn';
+      btn.type='button';
+      btn.className='secondary';
+      btn.textContent='Confirmar Zonas';
+
+      btn.addEventListener('click',function(){
+        var frame=byId('integralAthleteFrame');
+        var nativeBtn=null;
+        try{ nativeBtn=frame && frame.contentDocument && frame.contentDocument.getElementById('applyMarkersBtn'); }catch(e){}
+        if(!nativeBtn){
+          alert('O módulo Atleta ainda não terminou de carregar.');
+          return;
+        }
+        btn.disabled=true;
+        btn.textContent='Confirmando zonas…';
+        try{
+          nativeBtn.click();
+          setTimeout(function(){
+            btn.disabled=false;
+            btn.textContent='✓ Zonas confirmadas';
+          },350);
+        }catch(e){
+          btn.disabled=false;
+          btn.textContent='Confirmar Zonas';
+          alert('Não foi possível confirmar as zonas.');
+        }
+      });
+
+      wrap.appendChild(btn);
+      toggleWrap.insertAdjacentElement('afterend',wrap);
+    }
+
+    function syncVisibility(){
+      wrap.hidden=toggle.getAttribute('aria-pressed')!=='true';
+      if(!wrap.hidden)hideNativeAthleteButton();
+    }
+    syncVisibility();
+
+    new MutationObserver(syncVisibility).observe(toggle,{attributes:true,attributeFilter:['aria-pressed']});
+
+    var frame=byId('integralAthleteFrame');
+    if(frame){
+      frame.addEventListener('load',function(){
+        setTimeout(hideNativeAthleteButton,100);
+        setTimeout(hideNativeAthleteButton,700);
+      });
+    }
+  }
+
+  function init(){
+    fixSpo2();
+    ensureZonesButton();
+    setTimeout(fixSpo2,500);
+    setTimeout(hideNativeAthleteButton,900);
+    setTimeout(hideNativeAthleteButton,1800);
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
+})();
+</script>
 </body></html>
