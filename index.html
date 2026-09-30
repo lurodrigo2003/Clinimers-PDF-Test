@@ -15749,4 +15749,51 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   else init();
 })();
 </script>
+
+<script id="clinimers-pdf-dimensionamento-seguro">
+(function(){
+  const css = `
+@media print{
+  #wassermanSection{margin-top:0!important;padding:0!important}
+  #wassermanSection>h3{margin:0 0 2mm!important;padding:2mm 2.8mm!important}
+  #wassermanSection .wasserman-grid{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    grid-template-rows:repeat(3,62mm)!important;
+    height:auto!important;
+    gap:3mm 3.5mm!important;
+    margin:0 0 3mm!important
+  }
+  #wassermanSection .wasserman-panel{
+    height:62mm!important;min-height:62mm!important;margin:0!important;padding:0!important
+  }
+  #wassermanSection .wasserman-panel canvas{
+    width:100%!important;height:62mm!important;min-height:62mm!important;max-height:62mm!important
+  }
+  #wassermanSummaryEditable{margin-top:2mm!important;padding:2.2mm 2.5mm!important}
+  #wassermanSummaryText{font-size:8.3pt!important;line-height:1.28!important}
+
+  #synopticSection{margin:0!important;padding:0!important;min-height:0!important;height:auto!important}
+  #synopticSection>h3{margin:0 0 3mm!important;padding:2mm 2.8mm!important}
+  #synopticSection table,#syn{
+    width:100%!important;table-layout:fixed!important;font-size:9.1pt!important;line-height:1.22!important
+  }
+  #synopticSection th,#synopticSection td,#syn th,#syn td{
+    padding:2.05mm 1.6mm!important;vertical-align:middle!important
+  }
+  #synopticSection th,#syn th{font-size:8.6pt!important;line-height:1.12!important}
+  #synopticSection tbody tr,#syn tbody tr{height:8.1mm!important}
+}`;
+  function install(){
+    if(document.getElementById('clinimers-pdf-dimensionamento-css')) return;
+    const st=document.createElement('style');
+    st.id='clinimers-pdf-dimensionamento-css';
+    st.textContent=css;
+    document.head.appendChild(st);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',install,{once:true});
+  else install();
+})();
+</script>
+
 </body></html>
