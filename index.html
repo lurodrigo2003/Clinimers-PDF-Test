@@ -9322,9 +9322,12 @@ function applyCachedTCP(options={}){
       let best=null,dt=Infinity;for(const x of arr){const d=Math.abs(x.t-t);if(d<dt){dt=d;best=x}}return best;
     };
     const bm1=borgAt(parseClock(t2.TEMPOMARCADOR1)),bm2=borgAt(parseClock(t2.TEMPOMARCADOR2)),bm3=borgAt(parseClock(t2.TEMPOMARCADOR3));
-    if(bm1)set('borgla',String(bm1.borg).replace('.',','));
-    if(bm2)set('borgpcr',String(bm2.borg).replace('.',','));
-    if(bm3)set('borgpeak',String(bm3.borg).replace('.',','));
+      // Borg clínico: preserva os valores do XML nos pontos sinóticos reais.
+      // O TCP serve apenas como fallback quando não houver Borg naquele ponto.
+      const borgMissing=id=>{const el=$(id);const v=String(el?.textContent||'').trim();return !v||v==='—'||v==='-'};
+      if(bm1&&borgMissing('borgla'))set('borgla',String(bm1.borg).replace('.',','));
+      if(bm2&&borgMissing('borgpcr'))set('borgpcr',String(bm2.borg).replace('.',','));
+      if(bm3&&borgMissing('borgpeak'))set('borgpeak',String(bm3.borg).replace('.',','));
   }
 
   if(!t3?.length)return false;
