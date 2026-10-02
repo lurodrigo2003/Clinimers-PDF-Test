@@ -14234,7 +14234,58 @@ async function clinimersBuildCloudPdfBlob(clinicId){
   const pdfPatientName=String(valueOf('name')||'Paciente').replace(/[<>:"/\\|?*]+/g,' ').replace(/\s+/g,' ').trim();
   const pdfTitle='TCP - '+pdfPatientName;
   const html='<!doctype html><html><head><meta charset="utf-8"><title>'+pdfTitle.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</title>'+head+compactPaginationStyle+
-    '</head><body class="integral-printing">'+stageHtml+'</body></html>';
+    '</head><body class="integral-printing">'+stageHtml+'
+<script id="clinimers-st-revisao-sincronizacao-v223">
+(function(){
+  let syncing=false;
+
+  function activeButton(){
+    return document.querySelector(
+      '#stMedicalReviewV205 #stInfraV205.active,'+
+      '#stMedicalReviewV205 #stSupraV205.active,'+
+      '#stMedicalReviewV205 #stNormalV205.active,'+
+      '#stMedicalReviewV205 #stArtifactV205.active'
+    );
+  }
+
+  function isStEditorTarget(t){
+    if(!t || !t.closest || !t.closest('#stMedicalReviewV205')) return false;
+    return !!(
+      t.matches('#stInfraAmpV205,#stSupraAmpV205,#stMorphV213,#stEffortMomentV214,#stRecoveryMomentV214') ||
+      t.matches('#stLeadPickerV214 input[type="checkbox"]')
+    );
+  }
+
+  function syncStFromCurrentBoxes(ev){
+    const t=ev && ev.target;
+    if(!isStEditorTarget(t) || syncing) return;
+
+    // Aguarda o próprio controle terminar de atualizar seu valor/checked.
+    setTimeout(function(){
+      const b=activeButton();
+      if(!b) return;
+      syncing=true;
+      try{
+        // Reexecuta a decisão atualmente ativa (Infra/Supra/Normal/Artefato).
+        // O handler clínico existente reconstrói tcpStNarrative, ecgEsforco,
+        // sugestão/conclusão e classificação usando os valores ATUAIS das caixas.
+        b.click();
+      }finally{
+        syncing=false;
+      }
+    },0);
+  }
+
+  // Delegado: continua funcionando quando renderSTReviewV182 recria todo o painel.
+  document.addEventListener('change',syncStFromCurrentBoxes,true);
+  document.addEventListener('input',function(ev){
+    const t=ev && ev.target;
+    if(t && t.matches && t.matches('#stInfraAmpV205,#stSupraAmpV205')) syncStFromCurrentBoxes(ev);
+  },true);
+})();
+</script>
+
+</body></html>';
 
   // Evita o limite de tamanho do POST do Netlify:
   // guarda temporariamente o HTML já composto no Supabase e envia ao renderizador só uma URL assinada.
@@ -15973,10 +16024,22 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     if(!btn || btn.dataset.cloudAutoSaveBound==='1') return;
     btn.dataset.cloudAutoSaveBound='1';
 
-    // Bubble listener: a rotina original do botão executa antes desta.
-    btn.addEventListener('click',function(){
-      setTimeout(finalizeConfirmedReport,0);
+    // v2.23 — o comando original de confirmação intercepta o clique em capture e usa
+    // stopImmediatePropagation. Por isso o antigo listener de clique em bubble podia
+    // nunca executar. Observamos diretamente a mudança real de estado para confirmado.
+    const obs=new MutationObserver(function(){
+      if(btn.dataset.examConfirmed==='1'){
+        setTimeout(finalizeConfirmedReport,0);
+      }
     });
+    obs.observe(btn,{attributes:true,attributeFilter:['data-exam-confirmed']});
+
+    // Segurança para confirmação por teclado/código sem depender da propagação do clique.
+    btn.addEventListener('pointerup',function(){
+      setTimeout(function(){
+        if(btn.dataset.examConfirmed==='1') finalizeConfirmedReport();
+      },20);
+    },false);
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind,{once:true});
