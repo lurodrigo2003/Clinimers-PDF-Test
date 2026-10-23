@@ -86,6 +86,13 @@ export default async (req: Request, _context: Context) => {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     console.log("[render-pdf] pagina criada");
 
+    // Desloca o PDF 5 mm à direita sem mudar a área útil (196 mm),
+    // preservando larguras, quebras de linha e paginação do compositor.
+    html = html.replace(
+      "@page{size:A4 portrait;margin:8mm 7mm 9mm}",
+      "@page{size:A4 portrait;margin:8mm 2mm 9mm 12mm}",
+    );
+
     await page.setContent(html, { waitUntil: "networkidle", timeout: 30000 });
     console.log("[render-pdf] HTML carregado no Chromium");
 
