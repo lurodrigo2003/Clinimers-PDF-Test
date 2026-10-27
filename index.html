@@ -6090,10 +6090,13 @@ function generateConclusionSuggestion(){
   const ahaAge=ageAtExam($('dob')?.textContent||'', $('examDate')?.textContent||'');
   const aha=ahaFitnessClassification(ahaAge,vo2rel,$('sex')?.textContent||'');
   const vo2Type=window._patientVo2Plateau?.plateau?'máximo':'pico';
-  if(aha&&Number.isFinite(vo2rel)){
-    const ahaLine=`Capacidade cardiorrespiratória ${aha} segundo a classificação da AHA, atingindo VO₂ ${vo2Type} de ${vo2rel.toFixed(1).replace('.',',')} mL/kg/min${Number.isFinite(vo2pct)?` (${vo2pct.toFixed(0)}% do valor predito pelo algoritmo de Wasserman)`:''}.`;
+  if(Number.isFinite(vo2rel)){
+    const vo2Details=`VO₂ ${vo2Type} de ${vo2rel.toFixed(1).replace('.',',')} mL/kg/min${Number.isFinite(vo2pct)?` (${vo2pct.toFixed(0)}% do valor predito pelo algoritmo de Wasserman)`:''}.`;
+    const vo2Line=aha
+      ? `Capacidade cardiorrespiratória ${aha} segundo a classificação da AHA, atingindo ${vo2Details.charAt(0).toLowerCase()+vo2Details.slice(1)}`
+      : vo2Details;
     const intensityIdx=lines.findIndex(x=>/^Teste\s+(?:máximo|submáximo)/i.test(x));
-    lines.splice(intensityIdx>=0?intensityIdx+1:0,0,ahaLine);
+    lines.splice(intensityIdx>=0?intensityIdx+1:0,0,vo2Line);
   }
   const narrative=lines.filter(Boolean).join('\n');
   $('conclusionSuggestion').value=narrative;
